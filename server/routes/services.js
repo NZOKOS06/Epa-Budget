@@ -101,7 +101,14 @@ router.get('/demandes-engagements', async (req, res) => {
     const result = await pool.query(`
       SELECT e.*,
         ab.code as article_code, ab.libelle as article_libelle,
-        cb.libelle as chapitre_libelle
+        cb.id as programme_id,
+        cb.code as chapitre_code,
+        cb.libelle as chapitre_libelle,
+        (
+          SELECT COUNT(*)
+          FROM pieces_jointes pj
+          WHERE pj.engagement_id = e.id
+        ) as pieces_count
       FROM engagements e
       JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
@@ -212,7 +219,35 @@ router.get('/demandes-engagements/:id', async (req, res) => {
     const result = await pool.query(`
       SELECT e.*,
         ab.code as article_code, ab.libelle as article_libelle,
-        cb.libelle as chapitre_libelle, cb.code as chapitre_code
+        cb.id as programme_id, cb.libelle as chapitre_libelle, cb.code as chapitre_code,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'soumise_daf'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as soumission_daf_date,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_cb'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as transmission_controleur_date,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_dg'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as transmission_dg_date,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'valide'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as validation_dg_date
       FROM engagements e
       JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
@@ -232,6 +267,67 @@ router.get('/demandes-engagements/:id', async (req, res) => {
     res.json({ ...result.rows[0], pieces_jointes: pieces.rows });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// PIÈCES JOINTES — Visualisation/Téléchargement
+// ============================================================
+router.get('/demandes-engagements/:id/pieces/:pieceId/view', async (req, res) => {
+  try {
+    const { id, pieceId } = req.params;
+    const pieceResult = await pool.query(
+      `SELECT pj.*
+       FROM pieces_jointes pj
+       JOIN engagements e ON e.id = pj.engagement_id
+       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.id_demandeur = $3`,
+      [pieceId, id, req.user.id]
+    );
+
+    if (pieceResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Pièce jointe non trouvée' });
+    }
+
+    const piece = pieceResult.rows[0];
+    const absolutePath = path.resolve(piece.chemin_fichier);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
+    }
+
+    if (piece.type_fichier) {
+      res.setHeader('Content-Type', piece.type_fichier);
+    }
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(piece.nom_fichier)}"`);
+    return res.sendFile(absolutePath);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+router.get('/demandes-engagements/:id/pieces/:pieceId/download', async (req, res) => {
+  try {
+    const { id, pieceId } = req.params;
+    const pieceResult = await pool.query(
+      `SELECT pj.*
+       FROM pieces_jointes pj
+       JOIN engagements e ON e.id = pj.engagement_id
+       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.id_demandeur = $3`,
+      [pieceId, id, req.user.id]
+    );
+
+    if (pieceResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Pièce jointe non trouvée' });
+    }
+
+    const piece = pieceResult.rows[0];
+    const absolutePath = path.resolve(piece.chemin_fichier);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
+    }
+
+    return res.download(absolutePath, piece.nom_fichier);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
 });
 

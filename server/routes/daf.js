@@ -2,6 +2,9 @@ const express = require('express');
 const pool = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { auditLogger } = require('../middleware/audit');
+const { changeStatutEngagement } = require('../services/workflow');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
@@ -244,7 +247,29 @@ router.get('/engagements', async (req, res) => {
       SELECT e.*,
         ab.code as article_code, ab.libelle as article_libelle,
         cb.libelle as chapitre_libelle,
-        u.nom || ' ' || u.prenom as demandeur_nom
+        cb.libelle as programme_libelle,
+        ab.libelle as ligne_budgetaire_libelle,
+        u.nom || ' ' || u.prenom as demandeur_nom,
+        u.nom || ' ' || u.prenom as service_nom,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'soumise_daf'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as soumission_daf_date,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_cb'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as transmission_controleur_date,
+        (
+          SELECT COUNT(*)
+          FROM pieces_jointes pj
+          WHERE pj.engagement_id = e.id
+        ) as pieces_count
       FROM engagements e
       JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
@@ -277,9 +302,28 @@ router.get('/engagements/:id', async (req, res) => {
     const engagementResult = await pool.query(`
       SELECT e.*, 
         ab.code as article_code, ab.libelle as article_libelle,
-        u.nom || ' ' || u.prenom as demandeur_nom
+        cb.libelle as chapitre_libelle,
+        cb.libelle as programme_libelle,
+        ab.libelle as ligne_budgetaire_libelle,
+        u.nom || ' ' || u.prenom as demandeur_nom,
+        u.nom || ' ' || u.prenom as service_nom,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'soumise_daf'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as soumission_daf_date,
+        (
+          SELECT wh.created_at
+          FROM workflow_history wh
+          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_cb'
+          ORDER BY wh.created_at DESC
+          LIMIT 1
+        ) as transmission_controleur_date
       FROM engagements e
       JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       WHERE e.id = $1
     `, [id]);
@@ -298,6 +342,75 @@ router.get('/engagements/:id', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// PIÈCES JOINTES — Visualisation/Téléchargement
+// ============================================================
+router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
+  try {
+    const { id, pieceId } = req.params;
+    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    const epa_id = userResult.rows[0].epa_id;
+
+    const pieceResult = await pool.query(
+      `SELECT pj.*
+       FROM pieces_jointes pj
+       JOIN engagements e ON e.id = pj.engagement_id
+       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+      [pieceId, id, epa_id]
+    );
+
+    if (pieceResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Pièce jointe non trouvée' });
+    }
+
+    const piece = pieceResult.rows[0];
+    const absolutePath = path.resolve(piece.chemin_fichier);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
+    }
+
+    if (piece.type_fichier) {
+      res.setHeader('Content-Type', piece.type_fichier);
+    }
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(piece.nom_fichier)}"`);
+    return res.sendFile(absolutePath);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+router.get('/engagements/:id/pieces/:pieceId/download', async (req, res) => {
+  try {
+    const { id, pieceId } = req.params;
+    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    const epa_id = userResult.rows[0].epa_id;
+
+    const pieceResult = await pool.query(
+      `SELECT pj.*
+       FROM pieces_jointes pj
+       JOIN engagements e ON e.id = pj.engagement_id
+       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+      [pieceId, id, epa_id]
+    );
+
+    if (pieceResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Pièce jointe non trouvée' });
+    }
+
+    const piece = pieceResult.rows[0];
+    const absolutePath = path.resolve(piece.chemin_fichier);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
+    }
+
+    return res.download(absolutePath, piece.nom_fichier);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
 });
 

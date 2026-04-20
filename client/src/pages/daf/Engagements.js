@@ -51,7 +51,7 @@ export default function DAFEngagements() {
 
   const handleCardClick = async (item) => {
     try {
-      const response = await api.get(`/engagements/${item.id}`);
+      const response = await api.get(`/daf/engagements/${item.id}`);
       setSelectedEngagement(response.data);
       setShowModal(true);
       setActiveTab(1);
@@ -105,6 +105,43 @@ export default function DAFEngagements() {
     }).format(montant || 0);
   };
 
+  const downloadPiece = async (piece) => {
+    if (!selectedEngagement) return;
+    try {
+      const response = await api.get(
+        `/daf/engagements/${selectedEngagement.id}/pieces/${piece.id}/download`,
+        { responseType: 'blob' }
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = piece.nom_fichier || `piece-${piece.id}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Erreur téléchargement:', error);
+      alert('Impossible de télécharger la pièce jointe');
+    }
+  };
+
+  const viewPiece = async (piece) => {
+    if (!selectedEngagement) return;
+    try {
+      const response = await api.get(
+        `/daf/engagements/${selectedEngagement.id}/pieces/${piece.id}/view`,
+        { responseType: 'blob' }
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60 * 1000);
+    } catch (error) {
+      console.error('Erreur visualisation:', error);
+      alert('Impossible de visualiser la pièce jointe');
+    }
+  };
+
   // Organiser les engagements par statut selon documentation
   const columns = [
     {
@@ -119,9 +156,9 @@ export default function DAFEngagements() {
           objet: eng.objet || eng.programme_libelle || 'N/A',
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
-          service: eng.service_nom || 'N/A',
+          service: eng.service_nom || eng.demandeur_nom || 'N/A',
           date: eng.created_at,
-          pieces: eng.pieces_jointes?.length || 0,
+          pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
     },
@@ -137,9 +174,9 @@ export default function DAFEngagements() {
           objet: eng.objet || eng.programme_libelle || 'N/A',
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
-          service: eng.service_nom || 'N/A',
+          service: eng.service_nom || eng.demandeur_nom || 'N/A',
           date: eng.created_at,
-          pieces: eng.pieces_jointes?.length || 0,
+          pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
     },
@@ -155,9 +192,9 @@ export default function DAFEngagements() {
           objet: eng.objet || eng.programme_libelle || 'N/A',
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
-          service: eng.service_nom || 'N/A',
+          service: eng.service_nom || eng.demandeur_nom || 'N/A',
           date: eng.created_at,
-          pieces: eng.pieces_jointes?.length || 0,
+          pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
     },
@@ -173,9 +210,9 @@ export default function DAFEngagements() {
           objet: eng.objet || eng.programme_libelle || 'N/A',
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
-          service: eng.service_nom || 'N/A',
+          service: eng.service_nom || eng.demandeur_nom || 'N/A',
           date: eng.created_at,
-          pieces: eng.pieces_jointes?.length || 0,
+          pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
     },
@@ -373,14 +410,14 @@ export default function DAFEngagements() {
                     <div>
                       <p className="text-sm text-gray-600">Service demandeur</p>
                       <p className="font-semibold text-gray-900">
-                        {selectedEngagement.service_nom || 'N/A'}
+                        {selectedEngagement.service_nom || selectedEngagement.demandeur_nom || 'N/A'}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Statut</p>
                       <Badge variant={
-                        selectedEngagement.statut === 'VISA_OK' ? 'success' :
-                        selectedEngagement.statut === 'EN_VISA' ? 'info' :
+                        selectedEngagement.statut === 'valide' ? 'success' :
+                        selectedEngagement.statut === 'en_attente_cb' ? 'info' :
                         'warning'
                       }>
                         {selectedEngagement.statut}
@@ -472,11 +509,16 @@ export default function DAFEngagements() {
                             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span className="text-sm text-gray-900">{piece.nom || `Document ${index + 1}`}</span>
+                            <span className="text-sm text-gray-900">{piece.nom_fichier || piece.nom || `Document ${index + 1}`}</span>
                           </div>
-                          <Button variant="outline" size="sm">
-                            Télécharger
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => viewPiece(piece)}>
+                              Visualiser
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => downloadPiece(piece)}>
+                              Télécharger
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -487,7 +529,7 @@ export default function DAFEngagements() {
               )}
 
               {/* Onglet 4 : Actions */}
-              {activeTab === 4 && selectedEngagement.statut === 'SOUMISE_DAF' && (
+              {activeTab === 4 && selectedEngagement.statut === 'soumise_daf' && (
                 <div className="space-y-4">
                   <h4 className="font-semibold text-gray-900 mb-4">Actions Disponibles</h4>
                   <div className="space-y-3">

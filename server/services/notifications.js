@@ -16,7 +16,7 @@ async function emitNotification({ role, userId, engagementId, message, titre, li
         SELECT u.id, 'WORKFLOW', $1, $2, $3
         FROM utilisateurs u
         JOIN roles r ON u.role_id = r.id
-        WHERE r.code = $4 AND u.actif = true
+        WHERE r.code = $4 AND u.statut = 'actif'
       `;
       params = [titre || 'Notification workflow', message, lien || null, role];
     } else if (userId) {

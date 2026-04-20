@@ -22,6 +22,7 @@ export default function ServicesDemandesEngagements() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [selectedEngagement, setSelectedEngagement] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [detailTab, setDetailTab] = useState('infos');
 
   useEffect(() => {
     fetchData();
@@ -82,10 +83,12 @@ export default function ServicesDemandesEngagements() {
     try {
       const response = await api.get(`/services/demandes-engagements/${eng.id}`);
       setSelectedEngagement(response.data);
+      setDetailTab('infos');
       setShowDetails(true);
     } catch (error) {
       // Fallback si la route détail n'est pas encore parfaite
       setSelectedEngagement(eng);
+      setDetailTab('infos');
       setShowDetails(true);
     }
   };
@@ -109,16 +112,76 @@ export default function ServicesDemandesEngagements() {
     }).format(montant || 0);
   };
 
+  const getStatusMeta = (statut) => {
+    const value = (statut || '').toLowerCase();
+    const map = {
+      brouillon: { label: 'Brouillon', variant: 'gray' },
+      soumise_daf: { label: 'Soumise DAF', variant: 'warning' },
+      en_attente_cb: { label: 'En attente Contrôleur', variant: 'info' },
+      en_attente_dg: { label: 'En attente DG', variant: 'warning' },
+      valide: { label: 'Validée', variant: 'success' },
+      liquide: { label: 'Liquidée', variant: 'success' },
+      rejete: { label: 'Rejetée', variant: 'danger' },
+    };
+    return map[value] || { label: statut || 'Inconnu', variant: 'gray' };
+  };
+
+  const viewPiece = async (piece) => {
+    if (!selectedEngagement) return;
+    try {
+      const response = await api.get(
+        `/services/demandes-engagements/${selectedEngagement.id}/pieces/${piece.id}/view`,
+        { responseType: 'blob' }
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60 * 1000);
+    } catch (error) {
+      alert('Impossible de visualiser la pièce jointe');
+    }
+  };
+
+  const downloadPiece = async (piece) => {
+    if (!selectedEngagement) return;
+    try {
+      const response = await api.get(
+        `/services/demandes-engagements/${selectedEngagement.id}/pieces/${piece.id}/download`,
+        { responseType: 'blob' }
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = piece.nom_fichier || `piece-${piece.id}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      alert('Impossible de télécharger la pièce jointe');
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner message="Chargement des demandes..." />;
   }
 
   const filteredEngagements = engagements.filter(eng => {
-    const matchStatut = filterStatut ? eng.statut === filterStatut : true;
-    const matchProgramme = filterProgramme ? eng.programme_id?.toString() === filterProgramme : true;
+    const statut = (eng.statut || '').toLowerCase();
+    const programmeCode = (eng.chapitre_code || '').toLowerCase();
+    const programmeLibelle = (eng.chapitre_libelle || '').toLowerCase();
+    const matchStatut = filterStatut ? statut === filterStatut : true;
+    const matchProgramme = filterProgramme
+      ? (
+          eng.programme_id?.toString() === filterProgramme ||
+          programmeCode.includes(filterProgramme.toLowerCase()) ||
+          programmeLibelle.includes(filterProgramme.toLowerCase())
+        )
+      : true;
     const matchSearch = searchQuery ? (
       (eng.numero && eng.numero.toLowerCase().includes(searchQuery.toLowerCase())) || 
-      (eng.objet && eng.objet.toLowerCase().includes(searchQuery.toLowerCase()))
+      (eng.objet && eng.objet.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      programmeCode.includes(searchQuery.toLowerCase()) ||
+      programmeLibelle.includes(searchQuery.toLowerCase())
     ) : true;
     return matchStatut && matchProgramme && matchSearch;
   });
@@ -152,7 +215,7 @@ export default function ServicesDemandesEngagements() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <input
             type="text"
-            placeholder="Rechercher par N° ou Objet..."
+            placeholder="Rechercher par N°, objet, code ou libellé programme..."
             className="border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm px-3 py-2 border"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -164,7 +227,7 @@ export default function ServicesDemandesEngagements() {
           >
             <option value="">Tous les programmes</option>
             {programmes.map(p => (
-              <option key={p.id} value={p.id}>{p.code}</option>
+              <option key={p.id} value={p.id}>{p.code} - {p.libelle}</option>
             ))}
           </select>
           <select 
@@ -173,12 +236,13 @@ export default function ServicesDemandesEngagements() {
             onChange={(e) => setFilterStatut(e.target.value)}
           >
             <option value="">Tous les statuts</option>
-            <option value="BROUILLON">Brouillon</option>
-            <option value="SOUMISE_DAF">Soumise DAF</option>
-            <option value="EN_VISA">En Visa</option>
-            <option value="APPROUVE">Approuvé</option>
-            <option value="REFUSE">Refusé</option>
-            <option value="PAYE">Payé</option>
+            <option value="brouillon">Brouillon</option>
+            <option value="soumise_daf">Soumise DAF</option>
+            <option value="en_attente_cb">En attente Contrôleur</option>
+            <option value="en_attente_dg">En attente DG</option>
+            <option value="valide">Validée</option>
+            <option value="liquide">Liquidée</option>
+            <option value="rejete">Rejetée</option>
           </select>
         </div>
 
@@ -214,16 +278,16 @@ export default function ServicesDemandesEngagements() {
                       </span>
                     </TableCell>
                     <TableCell>
+                      {(() => {
+                        const statusMeta = getStatusMeta(eng.statut);
+                        return (
                       <Badge 
-                        variant={
-                          eng.statut === 'APPROUVE' ? 'success' :
-                          eng.statut === 'REFUSE' ? 'danger' :
-                          eng.statut === 'EN_VISA' ? 'warning' :
-                          'gray'
-                        }
+                        variant={statusMeta.variant}
                       >
-                        {eng.statut || 'Brouillon'}
+                        {statusMeta.label}
                       </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600">
@@ -419,7 +483,7 @@ export default function ServicesDemandesEngagements() {
       {/* Modal Détails */}
       {showDetails && selectedEngagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-6 border-b pb-4">
               <h3 className="text-xl font-bold text-gray-900">Détails de la demande {selectedEngagement.numero}</h3>
               <button onClick={() => setShowDetails(false)} className="text-gray-400 hover:text-gray-600">
@@ -428,60 +492,147 @@ export default function ServicesDemandesEngagements() {
                 </svg>
               </button>
             </div>
-            
-            <div className="grid grid-cols-2 gap-6 mb-6">
-              <div>
-                <p className="text-sm text-gray-500">Objet</p>
-                <p className="font-semibold text-gray-900">{selectedEngagement.objet}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Montant</p>
-                <p className="font-bold text-primary-600 text-lg">{formatMontant(selectedEngagement.montant)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Statut</p>
-                <Badge variant={
-                  selectedEngagement.statut === 'APPROUVE' ? 'success' :
-                  selectedEngagement.statut === 'REFUSE' ? 'danger' :
-                  'gray'
-                }>
-                  {selectedEngagement.statut}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Programme</p>
-                <p className="font-medium text-gray-900">{selectedEngagement.chapitre_libelle}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Article</p>
-                <p className="font-medium text-gray-900">{selectedEngagement.article_code} - {selectedEngagement.article_libelle}</p>
+            <div className="border-b bg-gray-50 px-6">
+              <div className="flex space-x-2">
+                {[
+                  { key: 'infos', label: 'Informations' },
+                  { key: 'progression', label: 'Progression' },
+                  { key: 'pieces', label: 'Pièces jointes' },
+                  { key: 'actions', label: 'Actions' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setDetailTab(tab.key)}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 ${
+                      detailTab === tab.key
+                        ? 'border-primary-500 text-primary-600 bg-white'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {selectedEngagement.statut === 'brouillon' && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-                <p className="text-sm text-blue-700">
-                  Cette demande est encore au stade de brouillon. Vous devez la soumettre pour qu'elle soit traitée.
-                </p>
-                <Button 
-                  className="mt-3 w-full" 
-                  onClick={async () => {
-                    try {
-                      await api.post(`/services/demandes-engagements/${selectedEngagement.id}/soumettre`);
-                      setShowDetails(false);
-                      fetchData();
-                    } catch (error) {
-                      alert(error.response?.data?.message || 'Erreur lors de la soumission');
-                    }
-                  }}
-                >
-                  Soumettre maintenant
-                </Button>
-              </div>
-            )}
+            <div className="flex-1 overflow-y-auto p-6">
+              {detailTab === 'infos' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm text-gray-500">Objet</p>
+                      <p className="font-semibold text-gray-900">{selectedEngagement.objet}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Montant</p>
+                      <p className="font-bold text-primary-600 text-lg">{formatMontant(selectedEngagement.montant)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Statut</p>
+                      {(() => {
+                        const statusMeta = getStatusMeta(selectedEngagement.statut);
+                        return <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>;
+                      })()}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Programme</p>
+                      <p className="font-medium text-gray-900">{selectedEngagement.chapitre_code} - {selectedEngagement.chapitre_libelle}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Ligne budgétaire</p>
+                      <p className="font-medium text-gray-900">{selectedEngagement.article_code} - {selectedEngagement.article_libelle}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Créée le</p>
+                      <p className="font-medium text-gray-900">{format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setShowDetails(false)}>Fermer</Button>
+              {detailTab === 'progression' && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-900">Suivi de la demande</h4>
+                  <div className="border-l-2 border-primary-300 pl-4">
+                    <p className="font-medium text-gray-900">Demande créée</p>
+                    <p className="text-sm text-gray-500">{format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                  </div>
+                  {selectedEngagement.soumission_daf_date && (
+                    <div className="border-l-2 border-primary-300 pl-4">
+                      <p className="font-medium text-gray-900">Soumise au DAF</p>
+                      <p className="text-sm text-gray-500">{format(new Date(selectedEngagement.soumission_daf_date), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                    </div>
+                  )}
+                  {selectedEngagement.transmission_controleur_date && (
+                    <div className="border-l-2 border-primary-300 pl-4">
+                      <p className="font-medium text-gray-900">Transmise au Contrôleur</p>
+                      <p className="text-sm text-gray-500">{format(new Date(selectedEngagement.transmission_controleur_date), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                    </div>
+                  )}
+                  {selectedEngagement.transmission_dg_date && (
+                    <div className="border-l-2 border-primary-300 pl-4">
+                      <p className="font-medium text-gray-900">Transmise au DG</p>
+                      <p className="text-sm text-gray-500">{format(new Date(selectedEngagement.transmission_dg_date), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                    </div>
+                  )}
+                  {selectedEngagement.validation_dg_date && (
+                    <div className="border-l-2 border-primary-300 pl-4">
+                      <p className="font-medium text-gray-900">Validée</p>
+                      <p className="text-sm text-gray-500">{format(new Date(selectedEngagement.validation_dg_date), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {detailTab === 'pieces' && (
+                <div className="space-y-3">
+                  {selectedEngagement.pieces_jointes && selectedEngagement.pieces_jointes.length > 0 ? (
+                    selectedEngagement.pieces_jointes.map((piece, index) => (
+                      <div key={piece.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-900">{piece.nom_fichier || `Document ${index + 1}`}</span>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="ghost" size="sm" onClick={() => viewPiece(piece)}>Visualiser</Button>
+                          <Button variant="outline" size="sm" onClick={() => downloadPiece(piece)}>Télécharger</Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">Aucune pièce jointe disponible.</p>
+                  )}
+                </div>
+              )}
+
+              {detailTab === 'actions' && (
+                <div className="space-y-4">
+                  {(selectedEngagement.statut || '').toLowerCase() === 'brouillon' ? (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-700">
+                        Cette demande est encore au stade de brouillon. Soumettez-la pour démarrer le traitement.
+                      </p>
+                      <Button
+                        className="mt-3"
+                        onClick={async () => {
+                          try {
+                            await api.post(`/services/demandes-engagements/${selectedEngagement.id}/soumettre`);
+                            setShowDetails(false);
+                            fetchData();
+                          } catch (error) {
+                            alert(error.response?.data?.message || 'Erreur lors de la soumission');
+                          }
+                        }}
+                      >
+                        Soumettre maintenant
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">Aucune action requise pour le statut actuel.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-6">
+                <Button onClick={() => setShowDetails(false)}>Fermer</Button>
+              </div>
             </div>
           </div>
         </div>
