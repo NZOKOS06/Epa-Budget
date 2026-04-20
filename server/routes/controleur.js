@@ -3,6 +3,8 @@ const pool = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { auditLogger } = require('../middleware/audit');
 const { changeStatutEngagement, getWorkflowHistory } = require('../services/workflow');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
@@ -86,6 +88,77 @@ router.get('/engagements/:id', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// PIÈCES JOINTES — Visualisation/Téléchargement (Contrôleur)
+// ============================================================
+router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
+  try {
+    const { id, pieceId } = req.params;
+    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    const epa_id = userResult.rows[0].epa_id;
+
+    const pieceResult = await pool.query(
+      `SELECT pj.*
+       FROM pieces_jointes pj
+       JOIN engagements e ON e.id = pj.engagement_id
+       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+      [pieceId, id, epa_id]
+    );
+
+    if (pieceResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Pièce jointe non trouvée' });
+    }
+
+    const piece = pieceResult.rows[0];
+    const absolutePath = path.resolve(piece.chemin_fichier);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
+    }
+
+    const filename = (piece.nom_fichier || '').toLowerCase();
+    const contentType = piece.type_fichier
+      || (filename.endsWith('.pdf') ? 'application/pdf' : null)
+      || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(piece.nom_fichier)}"`);
+    return res.sendFile(absolutePath);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+router.get('/engagements/:id/pieces/:pieceId/download', async (req, res) => {
+  try {
+    const { id, pieceId } = req.params;
+    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    const epa_id = userResult.rows[0].epa_id;
+
+    const pieceResult = await pool.query(
+      `SELECT pj.*
+       FROM pieces_jointes pj
+       JOIN engagements e ON e.id = pj.engagement_id
+       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+      [pieceId, id, epa_id]
+    );
+
+    if (pieceResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Pièce jointe non trouvée' });
+    }
+
+    const piece = pieceResult.rows[0];
+    const absolutePath = path.resolve(piece.chemin_fichier);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
+    }
+
+    return res.download(absolutePath, piece.nom_fichier);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
 });
 

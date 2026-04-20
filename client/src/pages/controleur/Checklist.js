@@ -91,6 +91,51 @@ export default function ControleurChecklist() {
     }).format(montant || 0);
   };
 
+  const viewPiece = async (piece) => {
+    if (!engagement) return;
+    try {
+      const response = await api.get(
+        `/controleur/engagements/${engagement.id}/pieces/${piece.id}/view`,
+        { responseType: 'blob' }
+      );
+      const responseContentType = response.headers?.['content-type'];
+      const filename = (piece.nom_fichier || '').toLowerCase();
+      const fallbackContentType = filename.endsWith('.pdf')
+        ? 'application/pdf'
+        : (piece.type_fichier || 'application/octet-stream');
+      const blob = new Blob([response.data], {
+        type: responseContentType || fallbackContentType,
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60 * 1000);
+    } catch (error) {
+      console.error('Erreur visualisation:', error);
+      alert('Impossible de visualiser la pièce jointe');
+    }
+  };
+
+  const downloadPiece = async (piece) => {
+    if (!engagement) return;
+    try {
+      const response = await api.get(
+        `/controleur/engagements/${engagement.id}/pieces/${piece.id}/download`,
+        { responseType: 'blob' }
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = piece.nom_fichier || `piece-${piece.id}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Erreur téléchargement:', error);
+      alert('Impossible de télécharger la pièce jointe');
+    }
+  };
+
   const allRequiredChecked = checklist.filter(item => item.required).every(item => item.checked);
 
   if (loading) {
@@ -234,9 +279,14 @@ export default function ControleurChecklist() {
                 engagement.pieces_jointes.map((p, i) => (
                   <div key={i} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded border">
                     <span className="text-sm truncate mr-2">{p.nom_fichier}</span>
-                    <Button variant="ghost" size="sm" onClick={() => window.open(`/api/uploads/${p.chemin_fichier}`, '_blank')}>
-                      Ouvrir
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => viewPiece(p)}>
+                        Visualiser
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => downloadPiece(p)}>
+                        Télécharger
+                      </Button>
+                    </div>
                   </div>
                 ))
               ) : (

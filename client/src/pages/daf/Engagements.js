@@ -105,6 +105,29 @@ export default function DAFEngagements() {
     }).format(montant || 0);
   };
 
+  const toNumber = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const buildBudgetMeta = (disponible, montantEngagement) => {
+    const dispo = toNumber(disponible);
+    const montant = toNumber(montantEngagement);
+    const ratio = dispo > 0 ? (montant / dispo) * 100 : (montant > 0 ? 100 : 0);
+    const safeRatio = Math.max(0, Math.min(ratio, 100));
+    const reste = dispo - montant;
+    const isAvailable = reste >= 0;
+
+    let color = 'bg-success-500';
+    if (!isAvailable) {
+      color = 'bg-danger-500';
+    } else if (safeRatio >= 80) {
+      color = 'bg-warning-500';
+    }
+
+    return { dispo, montant, ratio: safeRatio, reste, isAvailable, color };
+  };
+
   const downloadPiece = async (piece) => {
     if (!selectedEngagement) return;
     try {
@@ -370,7 +393,8 @@ export default function DAFEngagements() {
                   { id: 1, label: 'Informations Générales' },
                   { id: 2, label: 'Historique' },
                   { id: 3, label: 'Pièces Jointes' },
-                  { id: 4, label: 'Actions' }
+                  { id: 4, label: 'Disponibilité AE/CP' },
+                  { id: 5, label: 'Actions' }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -536,8 +560,82 @@ export default function DAFEngagements() {
                 </div>
               )}
 
-              {/* Onglet 4 : Actions */}
-              {activeTab === 4 && selectedEngagement.statut === 'soumise_daf' && (
+              {/* Onglet 4 : Disponibilité AE / CP */}
+              {activeTab === 4 && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Analyse de disponibilité budgétaire</h4>
+                  {(() => {
+                    const aeMeta = buildBudgetMeta(selectedEngagement.ae_disponible, selectedEngagement.montant);
+                    const cpMeta = buildBudgetMeta(selectedEngagement.cp_disponible, selectedEngagement.montant);
+                    const canProceed = aeMeta.isAvailable && cpMeta.isAvailable;
+                    const decisionTitle = canProceed ? 'Transmission possible' : 'Complément budgétaire requis';
+                    const decisionClass = canProceed
+                      ? 'bg-success-50 border-success-200 text-success-800'
+                      : 'bg-danger-50 border-danger-200 text-danger-800';
+                    const decisionHint = canProceed
+                      ? 'Les crédits AE et CP couvrent le montant de l’engagement.'
+                      : 'Le montant dépasse la disponibilité sur AE ou CP. Ajustez le montant ou réalisez un réaménagement budgétaire.';
+
+                    const BudgetGaugeCard = ({ title, meta }) => (
+                      <div className="rounded-lg border p-4 bg-white">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-sm font-semibold text-gray-900">{title}</p>
+                          <Badge variant={meta.isAvailable ? 'success' : 'danger'}>
+                            {meta.isAvailable ? 'Disponible' : 'Insuffisant'}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Disponible</span>
+                            <span className="font-semibold text-gray-900">{formatMontant(meta.dispo)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Montant engagement</span>
+                            <span className="font-semibold text-gray-900">{formatMontant(meta.montant)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Reste après engagement</span>
+                            <span className={`font-semibold ${meta.reste >= 0 ? 'text-success-700' : 'text-danger-700'}`}>
+                              {formatMontant(meta.reste)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                            <span>Taux d'utilisation</span>
+                            <span>{meta.ratio.toFixed(1)}%</span>
+                          </div>
+                          <div className="h-2.5 rounded-full bg-gray-200 overflow-hidden">
+                            <div
+                              className={`h-2.5 ${meta.color}`}
+                              style={{ width: `${meta.ratio}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+
+                    return (
+                      <div className="space-y-4">
+                        <div className={`rounded-lg border p-4 ${decisionClass}`}>
+                          <p className="text-sm font-semibold">{decisionTitle}</p>
+                          <p className="text-sm mt-1">{decisionHint}</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <BudgetGaugeCard title="AE disponible" meta={aeMeta} />
+                          <BudgetGaugeCard title="CP disponible" meta={cpMeta} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Onglet 5 : Actions */}
+              {activeTab === 5 && selectedEngagement.statut === 'soumise_daf' && (
                 <div className="space-y-4">
                   <h4 className="font-semibold text-gray-900 mb-4">Actions Disponibles</h4>
                   <div className="space-y-3">

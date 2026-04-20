@@ -20,7 +20,26 @@ export default function ControleurJournalControles() {
   const fetchControles = async () => {
     try {
       const response = await api.get('/controleur/journal-controles');
-      setControles(response.data || []);
+      const normalized = (response.data || []).map((item) => {
+        const rawStatut = (item.statut || item.type_avis || '').toString().toLowerCase();
+        const statut = rawStatut === 'favorable'
+          ? 'APPROUVE'
+          : rawStatut === 'defavorable'
+            ? 'REFUSE'
+            : (item.statut || 'EN_ATTENTE');
+
+        return {
+          id: item.id,
+          numero: item.numero || item.engagement_numero || 'N/A',
+          type_controle: item.type_controle || 'VISA',
+          statut,
+          montant: item.montant,
+          acteur: item.acteur || item.demandeur_nom || '-',
+          date_action: item.date_action || item.date_avis || item.created_at || null,
+          commentaire: item.commentaire || '',
+        };
+      });
+      setControles(normalized);
     } catch (error) {
       console.error('Erreur:', error);
       // Données de démo
@@ -69,11 +88,18 @@ export default function ControleurJournalControles() {
     }).format(montant || 0);
   };
 
+  const parseSafeDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
   // Filtrer les contrôles
   const controlesFiltres = controles.filter(controle => {
     if (filtres.statut && controle.statut !== filtres.statut) return false;
-    if (filtres.date_debut && new Date(controle.date_action) < new Date(filtres.date_debut)) return false;
-    if (filtres.date_fin && new Date(controle.date_action) > new Date(filtres.date_fin)) return false;
+    const actionDate = parseSafeDate(controle.date_action);
+    if (filtres.date_debut && actionDate && actionDate < new Date(filtres.date_debut)) return false;
+    if (filtres.date_fin && actionDate && actionDate > new Date(filtres.date_fin)) return false;
     return true;
   });
 
@@ -166,12 +192,26 @@ export default function ControleurJournalControles() {
                   <TableRow key={controle.id}>
                     <TableCell>
                       <div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {format(new Date(controle.date_action), 'dd/MM/yyyy', { locale: fr })}
-                        </span>
-                        <span className="text-xs text-gray-500 ml-2">
-                          {format(new Date(controle.date_action), 'HH:mm')}
-                        </span>
+                        {(() => {
+                          const actionDate = parseSafeDate(controle.date_action);
+                          if (!actionDate) {
+                            return (
+                              <span className="text-sm font-medium text-gray-500">
+                                Date indisponible
+                              </span>
+                            );
+                          }
+                          return (
+                            <>
+                              <span className="text-sm font-medium text-gray-900">
+                                {format(actionDate, 'dd/MM/yyyy', { locale: fr })}
+                              </span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                {format(actionDate, 'HH:mm')}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -190,7 +230,13 @@ export default function ControleurJournalControles() {
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={controle.statut === 'APPROUVE' ? 'success' : 'danger'}
+                        variant={
+                          controle.statut === 'APPROUVE'
+                            ? 'success'
+                            : controle.statut === 'REFUSE'
+                              ? 'danger'
+                              : 'warning'
+                        }
                         size="sm"
                       >
                         {controle.statut}

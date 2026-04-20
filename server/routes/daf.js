@@ -246,6 +246,8 @@ router.get('/engagements', async (req, res) => {
     let query = `
       SELECT e.*,
         ab.code as article_code, ab.libelle as article_libelle,
+        ab.ae_disponible as ae_disponible,
+        ab.cp_disponible as cp_disponible,
         cb.libelle as chapitre_libelle,
         cb.libelle as programme_libelle,
         ab.libelle as ligne_budgetaire_libelle,
@@ -302,6 +304,8 @@ router.get('/engagements/:id', async (req, res) => {
     const engagementResult = await pool.query(`
       SELECT e.*, 
         ab.code as article_code, ab.libelle as article_libelle,
+        ab.ae_disponible as ae_disponible,
+        ab.cp_disponible as cp_disponible,
         cb.libelle as chapitre_libelle,
         cb.libelle as programme_libelle,
         ab.libelle as ligne_budgetaire_libelle,

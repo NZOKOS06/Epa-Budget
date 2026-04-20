@@ -163,6 +163,14 @@ function App() {
             path="/controleur/checklist"
             element={
               <ProtectedRoute>
+                <Navigate to="/controleur/file-visas" replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/controleur/checklist/:id"
+            element={
+              <ProtectedRoute>
                 <ControleurChecklist />
               </ProtectedRoute>
             }
