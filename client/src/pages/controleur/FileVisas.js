@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, KPICard } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function ControleurFileVisas() {
   const [visas, setVisas] = useState([]);

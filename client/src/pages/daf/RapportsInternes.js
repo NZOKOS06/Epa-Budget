@@ -138,9 +138,10 @@ export default function DAFRapportsInternes() {
               <TableBody>
                 {rapports.map((rapport) => {
                   const tauxExecution = calculateTauxExecution(rapport.total_paye, rapport.total_engage);
+                  const rowKey = rapport.id || rapport.mois || `${rapport.nb_engagements || 0}-${rapport.total_engage || 0}`;
                   
                   return (
-                    <TableRow key={rapport.id}>
+                    <TableRow key={rowKey}>
                       <TableCell>
                         <span className="font-semibold text-gray-900">
                           {format(new Date(rapport.mois), 'MMMM yyyy', { locale: fr })}

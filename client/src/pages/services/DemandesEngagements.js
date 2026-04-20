@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function ServicesDemandesEngagements() {
   const [engagements, setEngagements] = useState([]);
@@ -112,19 +113,6 @@ export default function ServicesDemandesEngagements() {
     }).format(montant || 0);
   };
 
-  const getStatusMeta = (statut) => {
-    const value = (statut || '').toLowerCase();
-    const map = {
-      brouillon: { label: 'Brouillon', variant: 'gray' },
-      soumise_daf: { label: 'Soumise DAF', variant: 'warning' },
-      en_attente_cb: { label: 'En attente Contrôleur', variant: 'info' },
-      en_attente_dg: { label: 'En attente DG', variant: 'warning' },
-      valide: { label: 'Validée', variant: 'success' },
-      liquide: { label: 'Liquidée', variant: 'success' },
-      rejete: { label: 'Rejetée', variant: 'danger' },
-    };
-    return map[value] || { label: statut || 'Inconnu', variant: 'gray' };
-  };
 
   const viewPiece = async (piece) => {
     if (!selectedEngagement) return;
@@ -245,12 +233,12 @@ export default function ServicesDemandesEngagements() {
           >
             <option value="">Tous les statuts</option>
             <option value="brouillon">Brouillon</option>
-            <option value="soumise_daf">Soumise DAF</option>
-            <option value="en_attente_cb">En attente Contrôleur</option>
-            <option value="en_attente_dg">En attente DG</option>
-            <option value="valide">Validée</option>
-            <option value="liquide">Liquidée</option>
-            <option value="rejete">Rejetée</option>
+            <option value="soumise_daf">Soumis à la DAF</option>
+            <option value="en_attente_cb">En attente Visa Contrôleur</option>
+            <option value="en_attente_dg">En attente Validation DG</option>
+            <option value="valide">Validé</option>
+            <option value="liquide">Liquidé</option>
+            <option value="rejete">Rejeté</option>
           </select>
         </div>
 

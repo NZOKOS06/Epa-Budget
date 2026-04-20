@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function DGApprobations() {
   const [engagements, setEngagements] = useState([]);
@@ -224,7 +225,7 @@ export default function DGApprobations() {
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900">Liste des Engagements en Attente</h2>
           <p className="text-sm text-gray-600 mt-1">
-            {filteredEngagements.length} engagement(s) au statut REGULARITE_OK
+            {filteredEngagements.length} engagement(s) en attente de validation
           </p>
         </div>
 
@@ -450,10 +451,12 @@ export default function DGApprobations() {
                     )}
                     <div className="border-l-2 border-warning-500 pl-4">
                       <div className="flex items-center space-x-2 mb-1">
-                        <Badge variant="warning">En attente</Badge>
-                        <span className="text-sm text-gray-600">En attente d'approbation DG</span>
+                        <Badge variant={getStatusMeta(selectedEngagement.statut).variant}>
+                          {getStatusMeta(selectedEngagement.statut).label}
+                        </Badge>
+                        <span className="text-sm text-gray-600 ml-2">En attente d'approbation DG</span>
                       </div>
-                      <p className="text-sm text-gray-700">Statut actuel: REGULARITE_OK</p>
+                      <p className="text-sm text-gray-700">Dossier prêt pour signature finale</p>
                     </div>
                   </div>
                 </div>

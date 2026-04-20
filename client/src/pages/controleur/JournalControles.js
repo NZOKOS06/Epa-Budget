@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function ControleurJournalControles() {
   const [controles, setControles] = useState([]);
@@ -230,16 +231,10 @@ export default function ControleurJournalControles() {
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={
-                          controle.statut === 'APPROUVE'
-                            ? 'success'
-                            : controle.statut === 'REFUSE'
-                              ? 'danger'
-                              : 'warning'
-                        }
+                        variant={getStatusMeta(controle.statut).variant}
                         size="sm"
                       >
-                        {controle.statut}
+                        {getStatusMeta(controle.statut).label}
                       </Badge>
                     </TableCell>
                     <TableCell>

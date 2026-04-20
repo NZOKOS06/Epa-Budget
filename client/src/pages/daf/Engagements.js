@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function DAFEngagements() {
   const [engagements, setEngagements] = useState([]);
@@ -195,7 +196,7 @@ export default function DAFEngagements() {
     },
     {
       id: 'soumise-daf',
-      title: '⏳ SOUMISE_DAF',
+      title: '⏳ SOUMIS DAF',
       subtitle: 'Demandes soumises, en attente de validation DAF',
       items: engagements
         .filter(eng => eng.statut === 'soumise_daf')
@@ -213,7 +214,7 @@ export default function DAFEngagements() {
     },
     {
       id: 'en-visa',
-      title: '🔍 EN_VISA',
+      title: '🔍 EN VISA',
       subtitle: 'Engagements transmis au contrôleur pour visa',
       items: engagements
         .filter(eng => eng.statut === 'en_attente_cb')
@@ -231,7 +232,7 @@ export default function DAFEngagements() {
     },
     {
       id: 'visa-ok',
-      title: '✅ VISA_OK',
+      title: '✅ VISA OK',
       subtitle: 'Engagements visés, en cours de traitement comptable',
       items: engagements
         .filter(eng => eng.statut === 'en_attente_dg' || eng.statut === 'valide')
@@ -447,12 +448,8 @@ export default function DAFEngagements() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Statut</p>
-                      <Badge variant={
-                        selectedEngagement.statut === 'valide' ? 'success' :
-                        selectedEngagement.statut === 'en_attente_cb' ? 'info' :
-                        'warning'
-                      }>
-                        {selectedEngagement.statut}
+                      <Badge variant={getStatusMeta(selectedEngagement.statut).variant}>
+                        {getStatusMeta(selectedEngagement.statut).label}
                       </Badge>
                     </div>
                   </div>

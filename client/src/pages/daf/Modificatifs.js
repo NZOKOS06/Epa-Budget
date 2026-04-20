@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function DAFModificatifs() {
   const [modificatifs, setModificatifs] = useState([]);
@@ -160,18 +161,8 @@ export default function DAFModificatifs() {
   };
 
   const getStatutBadge = (statut) => {
-    switch(statut) {
-      case 'BROUILLON':
-        return <Badge variant="warning">🟡 BROUILLON</Badge>;
-      case 'EN_ATTENTE':
-        return <Badge variant="info">🔵 EN_ATTENTE</Badge>;
-      case 'APPROUVE':
-        return <Badge variant="success">🟢 APPROUVE</Badge>;
-      case 'REFUSE':
-        return <Badge variant="danger">🔴 REFUSE</Badge>;
-      default:
-        return <Badge>{statut}</Badge>;
-    }
+    const meta = getStatusMeta(statut);
+    return <Badge variant={meta.variant}>{meta.label}</Badge>;
   };
 
   if (loading) {

@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function ComptableControleRegularite() {
   const [liquidations, setLiquidations] = useState([]);
@@ -117,11 +118,9 @@ export default function ComptableControleRegularite() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {liq.statut === 'en_attente' ? (
-                        <Badge variant="warning">À Valider</Badge>
-                      ) : (
-                        <Badge variant="info">À Payer</Badge>
-                      )}
+                      <Badge variant={getStatusMeta(liq.statut).variant}>
+                        {getStatusMeta(liq.statut).label}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm">
