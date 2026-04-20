@@ -133,7 +133,15 @@ export default function ServicesDemandesEngagements() {
         `/services/demandes-engagements/${selectedEngagement.id}/pieces/${piece.id}/view`,
         { responseType: 'blob' }
       );
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const responseContentType = response.headers?.['content-type'];
+      const filename = (piece.nom_fichier || '').toLowerCase();
+      const fallbackContentType = filename.endsWith('.pdf')
+        ? 'application/pdf'
+        : (piece.type_fichier || 'application/octet-stream');
+      const blob = new Blob([response.data], {
+        type: responseContentType || fallbackContentType,
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60 * 1000);
     } catch (error) {

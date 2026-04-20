@@ -294,9 +294,11 @@ router.get('/demandes-engagements/:id/pieces/:pieceId/view', async (req, res) =>
       return res.status(404).json({ message: 'Fichier introuvable sur le serveur' });
     }
 
-    if (piece.type_fichier) {
-      res.setHeader('Content-Type', piece.type_fichier);
-    }
+    const filename = (piece.nom_fichier || '').toLowerCase();
+    const contentType = piece.type_fichier
+      || (filename.endsWith('.pdf') ? 'application/pdf' : null)
+      || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(piece.nom_fichier)}"`);
     return res.sendFile(absolutePath);
   } catch (error) {
