@@ -68,7 +68,7 @@ export default function DGApprobations() {
   const handleVoirDetails = async (engagement) => {
     try {
       // Récupérer les détails complets de l'engagement
-      const response = await api.get(`/engagements/${engagement.id}`);
+      const response = await api.get(`/dg/engagements/${engagement.id}`);
       setSelectedEngagement(response.data);
       setShowModal(true);
       setActiveTab(1);
@@ -133,6 +133,30 @@ export default function DGApprobations() {
     }).format(montant || 0);
   };
 
+  const downloadPiece = async (pieceId) => {
+    try {
+      const response = await api.get(`/dg/engagements/${selectedEngagement.id}/pieces/${pieceId}/download`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const piece = selectedEngagement.pieces_jointes.find(p => p.id === pieceId);
+      link.setAttribute('download', piece?.nom_fichier || 'piece-jointe');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Erreur téléchargement:', error);
+      alert('Erreur lors du téléchargement de la pièce jointe');
+    }
+  };
+
+  const viewPiece = (pieceId) => {
+    const url = `${api.defaults.baseURL}/dg/engagements/${selectedEngagement.id}/pieces/${pieceId}/view?token=${localStorage.getItem('token')}`;
+    window.open(url, '_blank');
+  };
+
   if (loading) {
     return <LoadingSpinner message="Chargement des approbations..." />;
   }
@@ -177,8 +201,14 @@ export default function DGApprobations() {
               onChange={(e) => setFilterProgramme(e.target.value)}
             >
               <option value="">Tous les programmes</option>
-              {[...new Set(engagements.map(e => ({ id: e.programme_id, libelle: e.programme_libelle })))].map(prog => (
-                <option key={prog.id} value={prog.id}>{prog.libelle}</option>
+              {Array.from(
+                new Map(
+                  engagements
+                    .filter(e => e.programme_id && e.programme_libelle)
+                    .map(e => [e.programme_id, e.programme_libelle])
+                ).entries()
+              ).map(([id, libelle]) => (
+                <option key={id} value={id}>{libelle}</option>
               ))}
             </select>
           </div>
@@ -271,7 +301,7 @@ export default function DGApprobations() {
                       <span className="text-gray-700">{eng.programme_libelle}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-gray-700">{eng.service_nom || 'N/A'}</span>
+                      <span className="text-gray-700">{eng.epa_nom || 'Service Général'}</span>
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600">
@@ -367,21 +397,54 @@ export default function DGApprobations() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Programme</p>
-                      <p className="font-semibold text-gray-900">
-                        {selectedEngagement.programme_libelle}
+                      <p className="text-sm text-gray-600 font-medium">Programme</p>
+                      <p className="text-gray-900">
+                        <span className="font-bold text-primary-700">{selectedEngagement.programme_code}</span> - {selectedEngagement.programme_libelle}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Ligne budgétaire</p>
+                      <p className="text-sm text-gray-600 font-medium">Service / Entité</p>
                       <p className="font-semibold text-gray-900">
-                        {selectedEngagement.ligne_budgetaire_libelle || 'N/A'}
+                        {selectedEngagement.epa_nom || 'Service Général'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium">Ligne budgétaire</p>
+                      <p className="text-gray-900">
+                        <span className="font-bold text-primary-700">{selectedEngagement.article_code}</span> - {selectedEngagement.article_libelle}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium">Demandeur</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedEngagement.demandeur_nom}
                       </p>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Objet complet</p>
-                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+
+                  {/* Highlights / Avis du Contrôleur */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-6">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <h4 className="font-bold text-amber-900 text-sm uppercase tracking-wider">Avis du Contrôleur Budgétaire</h4>
+                    </div>
+                    {selectedEngagement.type_avis === 'favorable' ? (
+                      <div className="space-y-2">
+                        <Badge variant="success">FAVORABLE</Badge>
+                        <p className="text-sm text-amber-800 italic">
+                          "{selectedEngagement.avis_commentaire || 'Aucun commentaire particulier.'}"
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-amber-700 italic">En attente ou avis non communiqué dans ce dashboard.</p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-gray-600 mb-2 font-medium">Objet complet de la dépense</p>
+                    <p className="text-gray-900 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed">
                       {selectedEngagement.objet || 'N/A'}
                     </p>
                   </div>
@@ -468,17 +531,22 @@ export default function DGApprobations() {
                   <h4 className="font-semibold text-gray-900 mb-4">Documents Associés</h4>
                   {selectedEngagement.pieces_jointes && selectedEngagement.pieces_jointes.length > 0 ? (
                     <div className="space-y-2">
-                      {selectedEngagement.pieces_jointes.map((piece, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      {selectedEngagement.pieces_jointes.map((piece) => (
+                        <div key={piece.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-3">
                             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span className="text-sm text-gray-900">{piece.nom || `Document ${index + 1}`}</span>
+                            <span className="text-sm text-gray-900">{piece.nom_fichier || 'Document sans nom'}</span>
                           </div>
-                          <Button variant="outline" size="sm">
-                            Télécharger
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => viewPiece(piece.id)}>
+                              Voir
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => downloadPiece(piece.id)}>
+                              Télécharger
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -493,33 +561,54 @@ export default function DGApprobations() {
 
               {/* Onglet 4 : Impact Budgétaire */}
               {activeTab === 4 && (
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900 mb-4">Analyse Budgétaire</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">Crédits disponibles (avant)</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatMontant(selectedEngagement.credits_disponibles || 0)}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-gray-900">Disponibilité Budgétaire (AE)</h4>
+                    <Badge variant={selectedEngagement.ae_disponible >= selectedEngagement.montant ? 'success' : 'danger'}>
+                      {selectedEngagement.ae_disponible >= selectedEngagement.montant ? 'Crédits suffisants' : 'Crédits insuffisants'}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="p-5 bg-primary-50 rounded-2xl border border-primary-100 shadow-sm">
+                      <p className="text-sm text-primary-700 font-medium mb-1">Disponible avant validation</p>
+                      <p className="text-2xl font-black text-primary-900">
+                        {formatMontant(selectedEngagement.ae_disponible || 0)}
                       </p>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">Crédits restants (après)</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatMontant((selectedEngagement.credits_disponibles || 0) - (selectedEngagement.montant || 0))}
+                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                      <p className="text-sm text-gray-600 font-medium mb-1">Reste après validation</p>
+                      <p className={`text-2xl font-black ${
+                        (selectedEngagement.ae_disponible - selectedEngagement.montant) < 0 
+                        ? 'text-danger-600' 
+                        : 'text-gray-900'
+                      }`}>
+                        {formatMontant((selectedEngagement.ae_disponible || 0) - (selectedEngagement.montant || 0))}
                       </p>
                     </div>
                   </div>
-                  <div className="p-4 bg-primary-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Taux d'engagement de la ligne</p>
-                    <div className="w-full bg-gray-200 rounded-full h-4">
-                      <div
-                        className="bg-primary-500 h-4 rounded-full"
-                        style={{ width: `${Math.min(((selectedEngagement.montant || 0) / (selectedEngagement.credits_disponibles || 1)) * 100, 100)}%` }}
-                      />
+
+                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                    <div className="flex justify-between text-sm font-bold text-gray-700">
+                      <span>Impact sur l'article {selectedEngagement.article_code}</span>
+                      <span>{Math.round(((selectedEngagement.montant || 0) / (selectedEngagement.ae_disponible || 1)) * 100)}%</span>
                     </div>
-                    <p className="text-sm text-gray-700 mt-2">
-                      {((selectedEngagement.montant || 0) / (selectedEngagement.credits_disponibles || 1) * 100).toFixed(1)}%
-                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-700 ease-out ${
+                          ((selectedEngagement.montant || 0) / (selectedEngagement.ae_disponible || 1)) > 0.8 ? 'bg-danger-500' : 'bg-primary-600'
+                        }`}
+                        style={{ width: `${Math.min(100, ((selectedEngagement.montant || 0) / (selectedEngagement.ae_disponible || 1)) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex items-start space-x-3 text-xs text-gray-500 mt-2 italic">
+                      <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p>
+                        Conformément aux règles de gestion (RG-03), la validation par le DG déclenche la réservation définitive des Autorisations d'Engagement (AE).
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

@@ -11,6 +11,7 @@ export default function DGDashboard() {
     alertes: [],
     programmes: [],
     evolutionMensuelle: [],
+    historique: [],
   });
   const [loading, setLoading] = useState(true);
   const [selectedEngagement, setSelectedEngagement] = useState(null);
@@ -26,7 +27,8 @@ export default function DGDashboard() {
       setData({
         ...response.data,
         evolutionMensuelle: response.data.evolutionMensuelle || [],
-        programmes: response.data.programmes || []
+        programmes: response.data.programmes || [],
+        historique: response.data.historique || []
       });
     } catch (error) {
       console.error('Erreur:', error);
@@ -356,6 +358,71 @@ export default function DGDashboard() {
           </div>
         </Card>
       )}
+
+      {/* Historique des Approbations */}
+      <Card>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Historique des Approbations</h2>
+          <p className="text-sm text-gray-600 mt-1">Les 10 dernières approbations effectuées</p>
+        </div>
+
+        {data.historique?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableHead>Numéro Engagement</TableHead>
+                <TableHead>Objet</TableHead>
+                <TableHead>Montant</TableHead>
+                <TableHead>Ancien Statut</TableHead>
+                <TableHead>Nouveau Statut</TableHead>
+                <TableHead>Date Approbation</TableHead>
+              </TableHeader>
+              <TableBody>
+                {data.historique.map((hist) => (
+                  <TableRow key={hist.id}>
+                    <TableCell>
+                      <span className="font-semibold text-primary-600">{hist.engagement_numero}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-700 truncate max-w-xs">{hist.objet}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold text-gray-900">
+                        {formatMontant(hist.montant)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {hist.ancien_statut}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="success">
+                        {hist.nouveau_statut}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-600">
+                        {format(new Date(hist.date_approbation), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+            title="Aucun historique d'approbation"
+            description="Les approbations apparaîtront ici"
+          />
+        )}
+      </Card>
 
       {/* Modal de Détails d'Engagement - Selon documentation */}
       {showModal && selectedEngagement && (
