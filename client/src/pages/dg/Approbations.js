@@ -7,7 +7,9 @@ import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function DGApprobations() {
   const [engagements, setEngagements] = useState([]);
+  const [engagementsApprouves, setEngagementsApprouves] = useState([]);
   const [filteredEngagements, setFilteredEngagements] = useState([]);
+  const [filteredEngagementsApprouves, setFilteredEngagementsApprouves] = useState([]);
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEngagement, setSelectedEngagement] = useState(null);
@@ -15,13 +17,15 @@ export default function DGApprobations() {
   const [activeTab, setActiveTab] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProgramme, setFilterProgramme] = useState('');
+  const [searchTermApprouves, setSearchTermApprouves] = useState('');
+  const [filterProgrammeApprouves, setFilterProgrammeApprouves] = useState('');
 
   useEffect(() => {
     fetchEngagements();
   }, []);
 
   useEffect(() => {
-    // Filtrer les engagements
+    // Filtrer les engagements en attente
     let filtered = engagements;
     
     if (searchTerm) {
@@ -37,13 +41,41 @@ export default function DGApprobations() {
     }
     
     setFilteredEngagements(filtered);
-  }, [engagements, searchTerm, filterProgramme]);
+
+    // Filtrer les engagements approuvés
+    let filteredApprouves = engagementsApprouves;
+    
+    if (searchTermApprouves) {
+      filteredApprouves = filteredApprouves.filter(eng => 
+        eng.numero?.toLowerCase().includes(searchTermApprouves.toLowerCase()) ||
+        eng.programme_libelle?.toLowerCase().includes(searchTermApprouves.toLowerCase()) ||
+        eng.montant?.toString().includes(searchTermApprouves)
+      );
+    }
+    
+    if (filterProgrammeApprouves) {
+      filteredApprouves = filteredApprouves.filter(eng => eng.programme_id === parseInt(filterProgrammeApprouves));
+    }
+    
+    setFilteredEngagementsApprouves(filteredApprouves);
+  }, [engagements, engagementsApprouves, searchTerm, filterProgramme, searchTermApprouves, filterProgrammeApprouves]);
 
   const fetchEngagements = async () => {
     try {
       const response = await api.get('/dg/dashboard');
       setEngagements(response.data.engagements || []);
       setFilteredEngagements(response.data.engagements || []);
+      
+      // Récupérer aussi les engagements approuvés
+      try {
+        const approuvesResponse = await api.get('/dg/engagements-approuves');
+        setEngagementsApprouves(approuvesResponse.data || []);
+        setFilteredEngagementsApprouves(approuvesResponse.data || []);
+      } catch (error) {
+        // Si l'endpoint n'existe pas, les laisser vides
+        console.warn('Endpoint engagements-approuves non disponible');
+        setEngagementsApprouves([]);
+      }
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
@@ -134,27 +166,49 @@ export default function DGApprobations() {
   };
 
   const downloadPiece = async (pieceId) => {
+    if (!selectedEngagement) return;
     try {
       const response = await api.get(`/dg/engagements/${selectedEngagement.id}/pieces/${pieceId}/download`, {
         responseType: 'blob'
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
-      link.href = url;
+      link.href = blobUrl;
       const piece = selectedEngagement.pieces_jointes.find(p => p.id === pieceId);
-      link.setAttribute('download', piece?.nom_fichier || 'piece-jointe');
+      link.download = piece?.nom_fichier || `piece-${pieceId}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error('Erreur téléchargement:', error);
-      alert('Erreur lors du téléchargement de la pièce jointe');
+      alert('Impossible de télécharger la pièce jointe');
     }
   };
 
-  const viewPiece = (pieceId) => {
-    const url = `${api.defaults.baseURL}/dg/engagements/${selectedEngagement.id}/pieces/${pieceId}/view?token=${localStorage.getItem('token')}`;
-    window.open(url, '_blank');
+  const viewPiece = async (pieceId) => {
+    if (!selectedEngagement) return;
+    try {
+      const response = await api.get(
+        `/dg/engagements/${selectedEngagement.id}/pieces/${pieceId}/view`,
+        { responseType: 'blob' }
+      );
+      const responseContentType = response.headers?.['content-type'];
+      const piece = selectedEngagement.pieces_jointes.find(p => p.id === pieceId);
+      const filename = (piece?.nom_fichier || '').toLowerCase();
+      const fallbackContentType = filename.endsWith('.pdf')
+        ? 'application/pdf'
+        : (piece?.type_fichier || 'application/octet-stream');
+      const blob = new Blob([response.data], {
+        type: responseContentType || fallbackContentType,
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60 * 1000);
+    } catch (error) {
+      console.error('Erreur visualisation:', error);
+      alert('Impossible de visualiser la pièce jointe');
+    }
   };
 
   if (loading) {
@@ -334,6 +388,126 @@ export default function DGApprobations() {
             }
             title="Aucun engagement en attente"
             description="Tous les engagements ont été traités"
+          />
+        )}
+      </Card>
+
+      {/* Approbations Approuvées */}
+      <Card>
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Approbations Approuvées</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {filteredEngagementsApprouves.length} engagement(s) approuvé(s)
+          </p>
+        </div>
+
+        {/* Filtres et Recherche pour Approbations Approuvées */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recherche
+              </label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Numéro, montant, programme..."
+                value={searchTermApprouves}
+                onChange={(e) => setSearchTermApprouves(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filtrer par programme
+              </label>
+              <select
+                className="input-field"
+                value={filterProgrammeApprouves}
+                onChange={(e) => setFilterProgrammeApprouves(e.target.value)}
+              >
+                <option value="">Tous les programmes</option>
+                {Array.from(
+                  new Map(
+                    engagementsApprouves
+                      .filter(e => e.programme_id && e.programme_libelle)
+                      .map(e => [e.programme_id, e.programme_libelle])
+                  ).entries()
+                ).map(([id, libelle]) => (
+                  <option key={id} value={id}>{libelle}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTermApprouves('');
+                  setFilterProgrammeApprouves('');
+                }}
+                className="w-full"
+              >
+                Réinitialiser
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {filteredEngagementsApprouves.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableHead>Numéro</TableHead>
+                <TableHead>Montant</TableHead>
+                <TableHead>Programme</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Date d'approbation</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableHeader>
+              <TableBody>
+                {filteredEngagementsApprouves.map((eng) => (
+                  <TableRow key={eng.id}>
+                    <TableCell>
+                      <span className="font-semibold text-primary-600">{eng.numero}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold text-gray-900">
+                        {formatMontant(eng.montant)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-700">{eng.programme_libelle}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-700">{eng.epa_nom || 'Service Général'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-600">
+                        {format(new Date(eng.updated_at), 'dd/MM/yyyy', { locale: fr })}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        onClick={() => handleVoirDetails(eng)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Voir détails
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            }
+            title="Aucune approbation"
+            description="Les engagements approuvés apparaîtront ici"
           />
         )}
       </Card>
@@ -616,36 +790,58 @@ export default function DGApprobations() {
 
             {/* Actions */}
             <div className="border-t p-6 bg-gray-50">
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowModal(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  variant="danger"
-                  className="flex-1"
-                  onClick={() => {
-                    const motif = prompt('Motif du refus (obligatoire):');
-                    if (motif) {
-                      handleRefuser(selectedEngagement.id, motif);
-                    }
-                  }}
-                >
-                  Refuser
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    const commentaire = prompt('Commentaire (optionnel):') || '';
-                    handleApprouver(selectedEngagement.id, commentaire);
-                  }}
-                >
-                  Approuver
-                </Button>
-              </div>
+              {selectedEngagement.statut === 'valide' ? (
+                <div className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-green-900">Engagement approuvé</p>
+                    <p className="text-sm text-green-700">Cet engagement a été approuvé par le Directeur Général</p>
+                  </div>
+                </div>
+              ) : selectedEngagement.statut === 'rejete' ? (
+                <div className="flex items-center space-x-3 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <svg className="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l-2-2m0 0l-2-2m2 2l2-2m-2 2l-2 2" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-red-900">Engagement rejeté</p>
+                    <p className="text-sm text-red-700">Motif: {selectedEngagement.motif_rejet || 'Non spécifié'}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowModal(false)}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className="flex-1"
+                    onClick={() => {
+                      const motif = prompt('Motif du refus (obligatoire):');
+                      if (motif) {
+                        handleRefuser(selectedEngagement.id, motif);
+                      }
+                    }}
+                  >
+                    Refuser
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      const commentaire = prompt('Commentaire (optionnel):') || '';
+                      handleApprouver(selectedEngagement.id, commentaire);
+                    }}
+                  >
+                    Approuver
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

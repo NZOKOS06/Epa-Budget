@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '../../components/ui';
+import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function ServicesReceptions() {
   const [receptions, setReceptions] = useState([]);
@@ -59,8 +60,10 @@ export default function ServicesReceptions() {
         observations: ''
       });
       fetchData();
+      alert('PV de réception créé avec succès');
     } catch (error) {
       console.error('Erreur:', error);
+      alert(`Erreur: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -124,14 +127,14 @@ export default function ServicesReceptions() {
                       <span className="font-semibold text-primary-600">{reception.pv_numero || `PV-${reception.id}`}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-gray-700">{reception.numero}</span>
+                      <span className="text-gray-700">{reception.engagement_numero}</span>
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-700">{reception.programme_libelle}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-semibold text-gray-900">
-                        {formatMontant(reception.montant)}
+                        {formatMontant(reception.engagement_montant || reception.montant_facture)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -142,8 +145,8 @@ export default function ServicesReceptions() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={reception.statut === 'LIQUIDE' ? 'success' : 'warning'}>
-                        {reception.statut || 'En attente'}
+                      <Badge variant={getStatusMeta(reception.statut).variant}>
+                        {getStatusMeta(reception.statut).label}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -181,8 +184,8 @@ export default function ServicesReceptions() {
         <Card>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">PV Réception #{selectedReception.pv_numero || selectedReception.id}</h2>
-              <p className="text-sm text-gray-600 mt-1">Engagement: {selectedReception.numero}</p>
+              <h2 className="text-xl font-bold text-gray-900">PV Réception #{selectedReception.pv_numero || `PV-${selectedReception.id}`}</h2>
+              <p className="text-sm text-gray-600 mt-1">Engagement: {selectedReception.engagement_numero}</p>
             </div>
             <Button variant="outline" onClick={() => setSelectedReception(null)}>
               Fermer
@@ -190,9 +193,21 @@ export default function ServicesReceptions() {
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Date de réception</p>
+                <p className="text-sm text-gray-600 font-medium">Programme</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {selectedReception.programme_libelle || '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Montant</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {formatMontant(selectedReception.engagement_montant || selectedReception.montant_facture)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Date de réception</p>
                 <p className="text-base font-semibold text-gray-900">
                   {selectedReception.date_reception
                     ? format(new Date(selectedReception.date_reception), 'dd/MM/yyyy', { locale: fr })
@@ -200,33 +215,47 @@ export default function ServicesReceptions() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Montant</p>
-                <p className="text-base font-semibold text-gray-900">
-                  {formatMontant(selectedReception.montant)}
-                </p>
+                <p className="text-sm text-gray-600 font-medium">Statut</p>
+                <Badge variant={getStatusMeta(selectedReception.statut).variant}>
+                  {getStatusMeta(selectedReception.statut).label}
+                </Badge>
               </div>
             </div>
 
+            {selectedReception.engagement_objet && (
+              <div>
+                <p className="text-sm text-gray-600 font-medium mb-2">Objet de l'engagement</p>
+                <p className="text-base text-gray-900 bg-gray-50 p-4 rounded-lg">
+                  {selectedReception.engagement_objet}
+                </p>
+              </div>
+            )}
+
             {selectedReception.observations && (
               <div>
-                <p className="text-sm text-gray-600 mb-2">Observations</p>
+                <p className="text-sm text-gray-600 font-medium mb-2">Observations / Conformité</p>
                 <p className="text-base text-gray-900 bg-gray-50 p-4 rounded-lg">
                   {selectedReception.observations}
                 </p>
               </div>
             )}
 
-            <div className="pt-4 border-t border-gray-200">
-              <Button
-                onClick={() => {
-                  handleServiceFait(selectedReception.id);
-                  setSelectedReception(null);
-                }}
-                className="btn-success"
-              >
-                Service fait → Liquidation OK
-              </Button>
-            </div>
+            {selectedReception.statut !== 'validee' && selectedReception.statut !== 'payee' && (
+              <div className="pt-4 border-t border-gray-200">
+                <Button
+                  onClick={() => {
+                    handleServiceFait(selectedReception.id);
+                    setSelectedReception(null);
+                  }}
+                  className="w-full"
+                >
+                  <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Enregistrer le Service Fait
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
       )}

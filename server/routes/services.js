@@ -391,11 +391,17 @@ router.get('/receptions', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT l.*, 
+        e.id as engagement_id,
         e.numero as engagement_numero,
         e.objet as engagement_objet,
-        e.montant as engagement_montant
+        e.montant as engagement_montant,
+        cb.code as programme_code,
+        cb.libelle as programme_libelle,
+        COALESCE(l.created_at, l.updated_at) as date_reception
       FROM liquidations l
       JOIN engagements e ON l.id_engagement = e.id
+      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       WHERE e.id_demandeur = $1
       ORDER BY l.created_at DESC
     `, [req.user.id]);
@@ -456,6 +462,116 @@ router.get('/engagements-receptionnables', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// CRÉER UN PV DE RÉCEPTION (Créer une liquidation)
+// ============================================================
+router.post('/engagements/:id/reception', auditLogger('liquidations'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date_reception, observations } = req.body;
+
+    // Vérifier que l'engagement existe et appartient à l'utilisateur
+    const engagementResult = await pool.query(`
+      SELECT e.id, e.montant, e.numero
+      FROM engagements e
+      WHERE e.id = $1 AND e.id_demandeur = $2 AND e.statut = 'valide'
+    `, [id, req.user.id]);
+
+    if (engagementResult.rows.length === 0) {
+      return res.status(404).json({ 
+        message: 'Engagement non trouvé ou non valide' 
+      });
+    }
+
+    const engagement = engagementResult.rows[0];
+
+    // Vérifier qu'une liquidation n'existe pas déjà pour cet engagement
+    const existingResult = await pool.query(
+      'SELECT id FROM liquidations WHERE id_engagement = $1',
+      [id]
+    );
+
+    if (existingResult.rows.length > 0) {
+      return res.status(400).json({ 
+        message: 'Une réception existe déjà pour cet engagement' 
+      });
+    }
+
+    // Créer la liquidation (PV de réception)
+    const insertResult = await pool.query(`
+      INSERT INTO liquidations (
+        montant_facture, 
+        montant_liquide, 
+        statut, 
+        id_engagement,
+        created_at
+      ) VALUES ($1, $2, 'en_attente', $3, $4)
+      RETURNING id, montant_facture, montant_liquide, statut, created_at
+    `, [
+      engagement.montant,
+      engagement.montant,
+      id,
+      date_reception || new Date()
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: `PV de réception créé pour l'engagement ${engagement.numero}`,
+      liquidation: insertResult.rows[0]
+    });
+  } catch (error) {
+    console.error('Erreur:', error);
+    res.status(500).json({ 
+      message: 'Erreur lors de la création du PV de réception', 
+      error: error.message 
+    });
+  }
+});
+
+// ============================================================
+// MARQUER LE SERVICE FAIT (Passer la liquidation à validée)
+// ============================================================
+router.post('/receptions/:id/service-fait', auditLogger('liquidations'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Vérifier que la liquidation existe et appartient à l'utilisateur
+    const liquidationResult = await pool.query(`
+      SELECT l.id, l.id_engagement
+      FROM liquidations l
+      JOIN engagements e ON l.id_engagement = e.id
+      WHERE l.id = $1 AND e.id_demandeur = $2
+    `, [id, req.user.id]);
+
+    if (liquidationResult.rows.length === 0) {
+      return res.status(404).json({ 
+        message: 'Liquidation non trouvée' 
+      });
+    }
+
+    // Marquer le service fait en passant le statut à 'validee'
+    // (en attente de validation comptable officielle)
+    const updateResult = await pool.query(`
+      UPDATE liquidations
+      SET statut = 'validee', updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, statut, montant_facture, montant_liquide, updated_at
+    `, [id]);
+
+    res.json({
+      success: true,
+      message: 'Service fait enregistré',
+      liquidation: updateResult.rows[0]
+    });
+  } catch (error) {
+    console.error('Erreur:', error);
+    res.status(500).json({ 
+      message: 'Erreur lors de l\'enregistrement du service fait', 
+      error: error.message 
+    });
   }
 });
 

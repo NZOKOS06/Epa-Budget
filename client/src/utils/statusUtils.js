@@ -9,24 +9,24 @@ const STATUS_MAP = {
     description: 'Demande en cours de rédaction'
   },
   soumise_daf: {
-    label: 'Soumis à la DAF',
+    label: 'En attente de visa DAF',
     variant: 'warning',
-    description: 'En attente de vérification par la DAF'
+    description: 'En attente de vérification par la Direction Administrative et Financière'
   },
   en_attente_cb: {
-    label: 'En attente Visa Contrôleur',
+    label: 'En attente de visa budgétaire',
     variant: 'info',
-    description: 'Transmis au Contrôleur Budgétaire pour visa'
+    description: 'Transmis au Contrôleur Budgétaire pour contrôle et visa'
   },
   en_attente_dg: {
-    label: 'En attente Validation DG',
+    label: 'En attente d\'approbation finale',
     variant: 'warning',
-    description: 'En attente de la signature finale de l\'Ordonnateur'
+    description: 'En attente de la signature finale par le Directeur Général (Ordonnateur)'
   },
   valide: {
-    label: 'Validé',
+    label: 'Approuvé',
     variant: 'success',
-    description: 'Engagement approuvé et validé'
+    description: 'Engagement approuvé et signé par le DG'
   },
   rejete: {
     label: 'Rejeté',
@@ -45,19 +45,19 @@ const STATUS_MAP = {
   },
   // Statuts de liquidation
   en_attente: {
-    label: 'En attente',
+    label: 'En attente de validation',
     variant: 'warning',
-    description: 'Dossier en attente de traitement'
+    description: 'PV de réception en attente de validation comptable'
   },
   validee: {
     label: 'Validée',
     variant: 'success',
-    description: 'Dossier validé'
+    description: 'Liquidation validée par le comptable'
   },
   payee: {
-    label: 'Payée',
+    label: 'Liquidée et payée',
     variant: 'success',
-    description: 'Dossier payé'
+    description: 'Paiement effectué'
   },
   // Statuts génériques (souvent en majuscules dans certains composants)
   approuve: {

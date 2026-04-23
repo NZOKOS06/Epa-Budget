@@ -244,6 +244,37 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // ============================================================
+// ENGAGEMENTS APPROUVÉS (Pour la liste des approbations approuvées)
+// ============================================================
+router.get('/engagements-approuves', async (req, res) => {
+  try {
+    const approuvesResult = await pool.query(`
+      SELECT e.*, 
+        ab.code as article_code, ab.libelle as article_libelle,
+        ab.ae_disponible, ab.cp_disponible,
+        cb.id as programme_id, cb.code as programme_code, cb.libelle as programme_libelle,
+        COALESCE(epa.nom, 'Service Général') as epa_nom,
+        u.nom || ' ' || u.prenom as demandeur_nom,
+        u.nom || ' ' || u.prenom as service_nom,
+        ac.type_avis, ac.commentaire as avis_commentaire
+      FROM engagements e
+      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
+      LEFT JOIN epa ON e.epa_id = epa.id
+      JOIN utilisateurs u ON e.id_demandeur = u.id
+      LEFT JOIN avis_controle ac ON ac.id_engagement = e.id AND ac.type_avis = 'favorable'
+      WHERE e.statut = 'valide'
+      ORDER BY e.updated_at DESC
+      LIMIT 100
+    `);
+
+    res.json(approuvesResult.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
 // APPROUVER UN ENGAGEMENT (RG-03: dernière étape du circuit)
 // RG-05: La déduction du solde s'effectue ici (dans workflow.js)
 // ============================================================
