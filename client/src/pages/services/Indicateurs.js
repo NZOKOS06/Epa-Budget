@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
-import { Card, Button, LoadingSpinner, KPICard, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, LineChart } from '../../components/ui';
+import { Card, Button, LoadingSpinner, KPICard, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, LineChart, Badge } from '../../components/ui';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function ServicesIndicateurs() {
   const [indicateurs, setIndicateurs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPeriode, setSelectedPeriode] = useState('actuel');
+  const [showDetails, setShowDetails] = useState(false);
 
   const fetchIndicateurs = useCallback(async () => {
     try {
@@ -36,10 +40,12 @@ export default function ServicesIndicateurs() {
   // Calculer les totaux pour les KPIs
   const totalDemandes = indicateurs.reduce((sum, ind) => sum + parseInt(ind.nb_demandes || 0), 0);
   const totalApprouves = indicateurs.reduce((sum, ind) => sum + parseInt(ind.nb_approuves || 0), 0);
+  const totalPayes = indicateurs.reduce((sum, ind) => sum + parseInt(ind.nb_payes || 0), 0);
   const totalMontantApprouve = indicateurs.reduce((sum, ind) => sum + parseFloat(ind.montant_approuve || 0), 0);
   const totalMontantPaye = indicateurs.reduce((sum, ind) => sum + parseFloat(ind.montant_paye || 0), 0);
 
   const tauxGlobalReussite = totalDemandes > 0 ? Math.round((totalApprouves / totalDemandes) * 100) : 0;
+  const tauxExecutionBudget = totalMontantApprouve > 0 ? Math.round((totalMontantPaye / totalMontantApprouve) * 100) : 0;
 
   // Préparation données pour LineChart simulé
   const lineChartData = [
@@ -101,11 +107,11 @@ export default function ServicesIndicateurs() {
           color="success"
         />
         <KPICard
-          title="Montant Payé"
-          value={formatMontant(totalMontantPaye)}
-          subtitle="Liquidations terminées"
+          title="Exécution Budgétaire"
+          value={`${tauxExecutionBudget}%`}
+          subtitle={`${totalPayes} liquidations`}
           icon={<MoneyIcon />}
-          color="primary"
+          color={tauxExecutionBudget >= 75 ? 'success' : tauxExecutionBudget >= 50 ? 'warning' : 'danger'}
         />
       </div>
 
@@ -127,15 +133,24 @@ export default function ServicesIndicateurs() {
                 <TableHead className="text-right">Montant Approuvé</TableHead>
                 <TableHead className="text-right">Montant Payé</TableHead>
                 <TableHead className="text-center">Taux Réussite</TableHead>
+                <TableHead className="text-center">Statut</TableHead>
               </TableHeader>
               <TableBody>
                 {indicateurs.map((ind, idx) => {
                   const nbDem = parseInt(ind.nb_demandes || 0);
                   const nbApp = parseInt(ind.nb_approuves || 0);
+                  const nbPay = parseInt(ind.nb_payes || 0);
                   const taux = nbDem > 0 ? Math.round((nbApp / nbDem) * 100) : 0;
+                  const tauxExecution = nbApp > 0 ? Math.round((nbPay / nbApp) * 100) : 0;
+                  
+                  const getStatutColor = (taux) => {
+                    if (taux >= 80) return 'success';
+                    if (taux >= 50) return 'warning';
+                    return 'danger';
+                  };
                   
                   return (
-                    <TableRow key={idx}>
+                    <TableRow key={idx} className="hover:bg-gray-50">
                       <TableCell>
                         <div>
                           <span className="font-bold text-gray-900 block">{ind.programme_code}</span>
@@ -146,17 +161,18 @@ export default function ServicesIndicateurs() {
                       </TableCell>
                       <TableCell className="text-center font-medium">{nbDem}</TableCell>
                       <TableCell className="text-center text-primary-600 font-medium">{nbApp}</TableCell>
-                      <TableCell className="text-center text-success-600 font-medium">{ind.nb_payes}</TableCell>
+                      <TableCell className="text-center text-success-600 font-medium">{nbPay}</TableCell>
                       <TableCell className="text-right font-medium">{formatMontant(ind.montant_approuve)}</TableCell>
                       <TableCell className="text-right font-medium text-success-600">{formatMontant(ind.montant_paye)}</TableCell>
                       <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          taux >= 80 ? 'bg-success-100 text-success-800' :
-                          taux >= 50 ? 'bg-warning-100 text-warning-800' :
-                          'bg-danger-100 text-danger-800'
-                        }`}>
+                        <Badge variant={getStatutColor(taux)}>
                           {taux}%
-                        </span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={getStatutColor(tauxExecution)}>
+                          {tauxExecution}% exécution
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   );
@@ -167,6 +183,73 @@ export default function ServicesIndicateurs() {
         ) : (
           <div className="text-center py-8 text-gray-500">Aucune donnée disponible</div>
         )}
+      </Card>
+
+      {/* Résumé et Actions */}
+      <Card>
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Résumé et Actions</h2>
+          <p className="text-sm text-gray-600 mt-1">Vue d'ensemble et options d'export</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-3">Performance Globale</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Taux de réussite moyen:</span>
+                <span className="font-medium">{tauxGlobalReussite}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Taux d'exécution budget:</span>
+                <span className="font-medium">{tauxExecutionBudget}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Nombre de programmes actifs:</span>
+                <span className="font-medium">{indicateurs.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Dernière mise à jour:</span>
+                <span className="font-medium">{format(new Date(), 'dd/MM/yyyy HH:mm', { locale: fr })}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-3">Actions Rapides</h3>
+            <div className="space-y-2">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowDetails(!showDetails)}
+              >
+                {showDetails ? 'Masquer les détails' : 'Afficher les détails'}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => window.print()}
+              >
+                Imprimer le rapport
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  const dataStr = JSON.stringify(indicateurs, null, 2);
+                  const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                  const exportFileDefaultName = `indicateurs_${format(new Date(), 'yyyy-MM-dd')}.json`;
+                  const linkElement = document.createElement('a');
+                  linkElement.setAttribute('href', dataUri);
+                  linkElement.setAttribute('download', exportFileDefaultName);
+                  linkElement.click();
+                }}
+              >
+                Exporter les données
+              </Button>
+            </div>
+          </div>
+        </div>
       </Card>
 
       {/* Graphiques */}

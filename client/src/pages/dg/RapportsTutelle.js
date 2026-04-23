@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Card, Button, LoadingSpinner, EmptyState, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Card, Button, LoadingSpinner, EmptyState, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select } from '../../components/ui';
 
 export default function DGRapportsTutelle() {
   const [rapports, setRapports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRapport, setSelectedRapport] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [filterType, setFilterType] = useState('tous');
+  const [filterStatut, setFilterStatut] = useState('tous');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchRapports();
@@ -55,6 +58,28 @@ export default function DGRapportsTutelle() {
     console.log('Modifier rapport:', rapport.id);
   };
 
+  // Filtrer les rapports selon les critères
+  const filteredRapports = rapports.filter(rapport => {
+    const matchType = filterType === 'tous' || rapport.type === filterType;
+    const matchStatut = filterStatut === 'tous' || rapport.statut === filterStatut;
+    const matchSearch = searchTerm === '' || 
+      rapport.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rapport.periode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rapport.epa_nom?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchType && matchStatut && matchSearch;
+  });
+
+  // Statistiques
+  const stats = {
+    total: rapports.length,
+    brouillons: rapports.filter(r => r.statut === 'BROUILLON').length,
+    valides: rapports.filter(r => r.statut === 'VALIDE' || r.statut === 'PRET').length,
+    transmis: rapports.filter(r => r.statut === 'TRANSMIS').length,
+    trimestriels: rapports.filter(r => r.type === 'RAP_TRIMESTRIEL').length,
+    annuels: rapports.filter(r => r.type === 'COMPTES_ANNUELS').length
+  };
+
   const getTypeLabel = (type) => {
     const types = {
       'RAP_TRIMESTRIEL': 'Rapport Trimestriel',
@@ -85,31 +110,137 @@ export default function DGRapportsTutelle() {
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Rapports Tutelle</h1>
-        <p className="text-gray-600 mt-1">Gestion et transmission des rapports à l'autorité de tutelle</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Rapports Tutelle</h1>
+          <p className="text-gray-600 mt-1">Gestion et transmission des rapports à l'autorité de tutelle</p>
+        </div>
+        <Button>
+          <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Nouveau Rapport
+        </Button>
       </div>
+
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="p-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+            <div className="text-sm text-gray-600">Total Rapports</div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-warning-600">{stats.brouillons}</div>
+            <div className="text-sm text-gray-600">Brouillons</div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-success-600">{stats.valides}</div>
+            <div className="text-sm text-gray-600">Validés</div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-info-600">{stats.transmis}</div>
+            <div className="text-sm text-gray-600">Transmis</div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filtres */}
+      <Card>
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Filtres et Recherche</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher un rapport..."
+              className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm px-3 py-2 border"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+            <Select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full"
+            >
+              <option value="tous">Tous les types</option>
+              <option value="RAP_TRIMESTRIEL">Rapports Trimestriels</option>
+              <option value="COMPTES_ANNUELS">Comptes Annuels</option>
+              <option value="RAPPORT_SPECIAL">Rapports Spéciaux</option>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+            <Select
+              value={filterStatut}
+              onChange={(e) => setFilterStatut(e.target.value)}
+              className="w-full"
+            >
+              <option value="tous">Tous les statuts</option>
+              <option value="BROUILLON">Brouillons</option>
+              <option value="VALIDE">Validés</option>
+              <option value="TRANSMIS">Transmis</option>
+            </Select>
+          </div>
+          <div className="flex items-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFilterType('tous');
+                setFilterStatut('tous');
+                setSearchTerm('');
+              }}
+              className="w-full"
+            >
+              Réinitialiser
+            </Button>
+          </div>
+        </div>
+        <div className="mt-4 text-sm text-gray-600">
+          {filteredRapports.length} rapport(s) trouvé(s) sur {rapports.length}
+        </div>
+      </Card>
 
       {/* Liste des Rapports - Tableau selon documentation */}
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Liste des Rapports</h2>
-        {rapports.length > 0 ? (
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Liste des Rapports</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {filteredRapports.length} rapport(s) affiché(s)
+          </p>
+        </div>
+        {filteredRapports.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableHead>Type</TableHead>
+                <TableHead>EPA</TableHead>
                 <TableHead>Période</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Date création</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableHeader>
               <TableBody>
-                {rapports.map((rapport) => (
+                {filteredRapports.map((rapport) => (
                   <TableRow key={rapport.id}>
                     <TableCell>
                       <span className="font-medium text-gray-900">
                         {getTypeLabel(rapport.type)}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-700">{rapport.epa_nom || 'N/A'}</span>
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-700">{rapport.periode || 'N/A'}</span>

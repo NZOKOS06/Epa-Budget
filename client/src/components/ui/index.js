@@ -9,4 +9,5 @@ export { Heatmap } from './Heatmap';
 export { KanbanBoard } from './Kanban';
 export { LineChart } from './LineChart';
 export { Calendar } from './Calendar';
+export { Select } from './Select';
 

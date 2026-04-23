@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Card, Button, LoadingSpinner, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, KPICard } from '../../components/ui';
+import { Card, Button, LoadingSpinner, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, KPICard, LineChart } from '../../components/ui';
 
 export default function ComptableCloture() {
   const [chapitres, setChapitres] = useState([]);
   const [etapes, setEtapes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [certifying, setCertifying] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedAnnee, setSelectedAnnee] = useState(new Date().getFullYear());
   const [stats, setStats] = useState({ total_ae: 0, total_cp: 0, total_paye: 0 });
 
   useEffect(() => {
@@ -50,30 +53,50 @@ export default function ComptableCloture() {
   const handleGenerer = async () => {
     setGenerating(true);
     try {
-      await api.post('/comptable/cloture/generer', {});
+      await api.post('/comptable/cloture/generer', { annee: selectedAnnee });
       fetchDonnees();
+      alert('Comptes générés avec succès');
     } catch (error) {
       console.error('Erreur:', error);
+      alert('Erreur lors de la génération: ' + (error.response?.data?.message || error.message));
     } finally {
       setGenerating(false);
     }
   };
 
   const handleCertifier = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir certifier ces comptes ? Cette action est irréversible.')) {
+      return;
+    }
+    
+    setCertifying(true);
     try {
-      await api.post('/comptable/cloture/certifier', {});
+      await api.post('/comptable/cloture/certifier', { annee: selectedAnnee });
       fetchDonnees();
+      alert('Comptes certifiés avec succès');
     } catch (error) {
       console.error('Erreur:', error);
+      alert('Erreur lors de la certification: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCertifying(false);
     }
   };
 
   const handleSoumettre = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir soumettre ces comptes à la CCDB ?')) {
+      return;
+    }
+    
+    setSubmitting(true);
     try {
-      await api.post('/comptable/cloture/soumettre', {});
+      await api.post('/comptable/cloture/soumettre', { annee: selectedAnnee });
       fetchDonnees();
+      alert('Comptes soumis à la CCDB avec succès');
     } catch (error) {
       console.error('Erreur:', error);
+      alert('Erreur lors de la soumission: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -90,6 +113,25 @@ export default function ComptableCloture() {
     return ((paye / initial) * 100).toFixed(1);
   };
 
+  // Composants d'icônes
+  const AEIcon = () => (
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    </svg>
+  );
+
+  const CPIcon = () => (
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  );
+
+  const PayeIcon = () => (
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+
   if (loading) {
     return <LoadingSpinner message="Chargement des données de clôture..." />;
   }
@@ -100,27 +142,45 @@ export default function ComptableCloture() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Clôture Comptable</h1>
-          <p className="text-gray-600 mt-1">Bilan d'exécution par programme et soumission CCDB</p>
+          <p className="text-gray-600 mt-1">Gestion de la clôture des comptes annuels</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <select
+            value={selectedAnnee}
+            onChange={(e) => setSelectedAnnee(parseInt(e.target.value))}
+            className="border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm px-3 py-2 border"
+          >
+            <option value={new Date().getFullYear() - 1}>{new Date().getFullYear() - 1}</option>
+            <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+            <option value={new Date().getFullYear() + 1}>{new Date().getFullYear() + 1}</option>
+          </select>
+          <Button onClick={handleGenerer} disabled={generating}>
+            {generating ? 'Génération...' : 'Générer Comptes'}
+          </Button>
         </div>
       </div>
 
+      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <KPICard
-          title="Total AE Initial"
+          title="Total AE Alloué"
           value={formatMontant(stats.total_ae)}
-          subtitle="Autorisations d'Engagement"
+          subtitle="Autorisations d'engagement"
+          icon={<AEIcon />}
           color="primary"
         />
         <KPICard
-          title="Total CP Initial"
+          title="Total CP Alloué"
           value={formatMontant(stats.total_cp)}
-          subtitle="Crédits de Paiement"
-          color="info"
+          subtitle="Crédits de paiement"
+          icon={<CPIcon />}
+          color="success"
         />
         <KPICard
           title="Total Exécuté (Payé)"
           value={formatMontant(stats.total_paye)}
           subtitle={`Taux d'exécution: ${calcTaux(stats.total_paye, stats.total_cp)}%`}
+          icon={<PayeIcon />}
           color={calcTaux(stats.total_paye, stats.total_cp) > 80 ? 'success' : 'warning'}
         />
       </div>

@@ -236,6 +236,178 @@ router.get('/cloture', async (req, res) => {
 });
 
 // ============================================================
+// ÉTAPES DE CLÔTURE
+// ============================================================
+router.get('/cloture/etapes', async (req, res) => {
+  try {
+    const { annee } = req.query;
+    const anneeCloture = annee || new Date().getFullYear();
+
+    // Vérifier s'il existe déjà des étapes pour cette année
+    const existingEtapes = await pool.query(`
+      SELECT * FROM workflow_cloture 
+      WHERE epa_id = $1 AND annee = $2
+      ORDER BY id
+    `, [req.user.epa_id, anneeCloture]);
+
+    if (existingEtapes.rows.length > 0) {
+      res.json(existingEtapes.rows);
+    } else {
+      // Étapes par défaut
+      const etapesDefaut = [
+        { id: 1, nom: 'Génération Comptes Administratifs', statut: 'EN_ATTENTE', date: null },
+        { id: 2, nom: 'Génération Comptes Financiers', statut: 'EN_ATTENTE', date: null },
+        { id: 3, nom: 'Certification e-signature', statut: 'EN_ATTENTE', date: null },
+        { id: 4, nom: 'Soumission CCDB', statut: 'EN_ATTENTE', date: null }
+      ];
+      res.json(etapesDefaut);
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// GÉNÉRER COMPTES DE CLÔTURE
+// ============================================================
+router.post('/cloture/generer', auditLogger('generation_comptes'), async (req, res) => {
+  try {
+    const { annee } = req.body;
+    const anneeCloture = annee || new Date().getFullYear();
+
+    // Mettre à jour les étapes
+    await pool.query(`
+      UPDATE workflow_cloture 
+      SET statut = 'TERMINE', date = CURRENT_TIMESTAMP
+      WHERE epa_id = $1 AND annee = $2 AND id IN (1, 2)
+    `, [req.user.epa_id, anneeCloture]);
+
+    // Marquer l'étape suivante en cours
+    await pool.query(`
+      UPDATE workflow_cloture 
+      SET statut = 'EN_COURS'
+      WHERE epa_id = $1 AND annee = $2 AND id = 3
+    `, [req.user.epa_id, anneeCloture]);
+
+    // Créer les rapports de comptes
+    try {
+      await pool.query(`
+        INSERT INTO rapports (epa_id, type, type_rapport, annee, statut, created_at, updated_at)
+        VALUES 
+          ($1, 'COMPTES_ADMINISTRATIFS', 'COMPTES_ADMINISTRATIFS', $2, 'GENERE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+          ($1, 'COMPTES_FINANCIERS', 'COMPTES_FINANCIERS', $2, 'GENERE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `, [req.user.epa_id, anneeCloture]);
+    } catch (error) {
+      // Ignorer l'erreur si les rapports existent déjà
+      if (!error.message.includes('duplicate key')) {
+        throw error;
+      }
+    }
+
+    res.json({ message: 'Comptes générés avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// CONTRÔLE DE RÉGULARITÉ
+// ============================================================
+router.get('/controle-regularite', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        e.*,
+        ab.code as article_code,
+        ab.libelle as article_libelle,
+        cb.libelle as programme_libelle,
+        u.nom || ' ' || u.prenom as demandeur_nom,
+        ac.type_avis,
+        ac.commentaire as avis_commentaire
+      FROM engagements e
+      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
+      JOIN utilisateurs u ON e.id_demandeur = u.id
+      LEFT JOIN avis_controle ac ON ac.id_engagement = e.id AND ac.type_avis = 'favorable'
+      WHERE e.statut = 'valide'
+        AND e.epa_id = $1
+        AND e.updated_at >= DATE_TRUNC('year', CURRENT_DATE)
+      ORDER BY e.updated_at DESC
+      LIMIT 100
+    `, [req.user.epa_id]);
+
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// CERTIFIER COMPTES
+// ============================================================
+router.post('/cloture/certifier', auditLogger('certification_comptes'), async (req, res) => {
+  try {
+    const { annee } = req.body;
+    const anneeCloture = annee || new Date().getFullYear();
+
+    // Mettre à jour l'étape de certification
+    await pool.query(`
+      UPDATE workflow_cloture 
+      SET statut = 'TERMINE', date = CURRENT_TIMESTAMP
+      WHERE epa_id = $1 AND annee = $2 AND id = 3
+    `, [req.user.epa_id, anneeCloture]);
+
+    // Marquer l'étape suivante en attente
+    await pool.query(`
+      UPDATE workflow_cloture 
+      SET statut = 'EN_ATTENTE'
+      WHERE epa_id = $1 AND annee = $2 AND id = 4
+    `, [req.user.epa_id, anneeCloture]);
+
+    // Mettre à jour les rapports comme certifiés
+    await pool.query(`
+      UPDATE rapports 
+      SET statut = 'CERTIFIE', date_certification = CURRENT_TIMESTAMP
+      WHERE epa_id = $1 AND annee = $2 
+        AND type_rapport IN ('COMPTES_ADMINISTRATIFS', 'COMPTES_FINANCIERS')
+    `, [req.user.epa_id, anneeCloture]);
+
+    res.json({ message: 'Comptes certifiés avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// SOUMETTRE À LA CCDB
+// ============================================================
+router.post('/cloture/soumettre', auditLogger('soumission_ccdb'), async (req, res) => {
+  try {
+    const { annee } = req.body;
+    const anneeCloture = annee || new Date().getFullYear();
+
+    // Mettre à jour l'étape de soumission
+    await pool.query(`
+      UPDATE workflow_cloture 
+      SET statut = 'TERMINE', date = CURRENT_TIMESTAMP
+      WHERE epa_id = $1 AND annee = $2 AND id = 4
+    `, [req.user.epa_id, anneeCloture]);
+
+    // Mettre à jour les rapports comme soumis
+    await pool.query(`
+      UPDATE rapports 
+      SET statut = 'SOUMIS_CCDB', date_soumission_ccdb = CURRENT_TIMESTAMP
+      WHERE epa_id = $1 AND annee = $2 
+        AND type_rapport IN ('COMPTES_ADMINISTRATIFS', 'COMPTES_FINANCIERS')
+    `, [req.user.epa_id, anneeCloture]);
+
+    res.json({ message: 'Comptes soumis à la CCDB avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
 // TRÉSORERIE
 // ============================================================
 router.get('/tresorerie', async (req, res) => {
@@ -323,6 +495,90 @@ router.get('/comptes-annuels', async (req, res) => {
     `, [anneeCompte, req.user.epa_id]);
 
     res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// EXPORT COMPTES ANNUELS FORMAT CCDB
+// ============================================================
+router.get('/comptes-annuels/export-ccdb', async (req, res) => {
+  try {
+    const { annee } = req.query;
+    const anneeCompte = annee || new Date().getFullYear();
+
+    // Récupérer les données pour l'export
+    const result = await pool.query(`
+      SELECT 
+        r.*,
+        epa.nom as epa_nom,
+        cb.ae_alloue,
+        cb.cp_alloue,
+        cb.cp_paye
+      FROM rapports r
+      JOIN epa ON r.epa_id = epa.id
+      LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = (
+        SELECT id FROM budgets WHERE epa_id = r.epa_id AND annee = r.annee LIMIT 1
+      )
+      WHERE r.type_rapport IN ('COMPTES_ADMINISTRATIFS', 'COMPTES_FINANCIERS') 
+        AND r.annee = $1
+        AND r.epa_id = $2
+      ORDER BY r.type_rapport
+    `, [anneeCompte, req.user.epa_id]);
+
+    // Pour l'instant, retourner un JSON simple
+    // TODO: Implémenter la génération Excel avec une librairie comme xlsx
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="comptes_annuels_${anneeCompte}_ccdb.json"`);
+    res.json({
+      annee: anneeCompte,
+      epa: result.rows[0]?.epa_nom || 'EPA',
+      date_export: new Date().toISOString(),
+      comptes: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ============================================================
+// TÉLÉCHARGER UN COMPTE ANNUEL SPÉCIFIQUE
+// ============================================================
+router.get('/comptes-annuels/:id/download', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Récupérer les informations du rapport
+    const rapportResult = await pool.query(`
+      SELECT r.*, epa.nom as epa_nom
+      FROM rapports r
+      JOIN epa ON r.epa_id = epa.id
+      WHERE r.id = $1 AND r.epa_id = $2
+    `, [id, req.user.epa_id]);
+
+    if (rapportResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Rapport non trouvé' });
+    }
+
+    const rapport = rapportResult.rows[0];
+
+    // Pour l'instant, générer un PDF simple
+    // TODO: Implémenter la génération PDF avec une librairie comme puppeteer
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${rapport.type_rapport}_${rapport.annee}.pdf"`);
+    
+    // Contenu PDF de base (placeholder)
+    const pdfContent = `
+      Rapport: ${rapport.type_rapport}
+      EPA: ${rapport.epa_nom}
+      Année: ${rapport.annee}
+      Statut: ${rapport.statut}
+      Date de création: ${rapport.created_at}
+      ${rapport.date_certification ? `Date de certification: ${rapport.date_certification}` : ''}
+    `;
+
+    res.send(pdfContent);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }

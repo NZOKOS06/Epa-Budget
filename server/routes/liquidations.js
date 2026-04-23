@@ -72,7 +72,7 @@ router.post(
       const engagement = engagementResult.rows[0];
       if (engagement.statut !== 'valide') {
         return res.status(400).json({
-          message: 'L\'engagement doit être au statut "validé" pour être liquidé'
+          message: 'L\'engagement doit être au statut "valide" pour être liquidé'
         });
       }
 
@@ -116,12 +116,14 @@ router.post(
       );
 
       // Mettre à jour les montants liquidés dans l'article budgétaire (CP)
-      await pool.query(
-        `UPDATE articles_budgetaires 
-         SET cp_liquide = cp_liquide + $1 
-         WHERE id = $2`,
-        [montant_liquide, engagement.id_article_budgetaire]
-      );
+      if (engagement.id_article_budgetaire) {
+        await pool.query(
+          `UPDATE articles_budgetaires 
+           SET cp_liquide = cp_liquide + $1 
+           WHERE id = $2`,
+          [montant_liquide, engagement.id_article_budgetaire]
+        );
+      }
 
       res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -245,7 +247,7 @@ router.post(
         [id]
       );
 
-      if (engagement.rows.length > 0) {
+      if (engagement.rows.length > 0 && engagement.rows[0].id_article_budgetaire) {
         const id_article = engagement.rows[0].id_article_budgetaire;
         
         // Mettre à jour CP payé dans articles_budgetaires
@@ -260,8 +262,8 @@ router.post(
         await pool.query(
           `UPDATE chapitres_budgetaires 
            SET cp_paye = cp_paye + $1 
-           WHERE id = (SELECT id_chapitre FROM articles_budgetaires WHERE id = $2)`,
-          [montant, id_article]
+           WHERE id = (SELECT id_chapitre FROM articles_budgetaires WHERE id = $1)`,
+          [id_article]
         );
       }
 
