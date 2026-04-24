@@ -5,7 +5,7 @@ export function Select({ children, value, onChange, className = '', ...props }) 
     <select
       value={value}
       onChange={onChange}
-      className={`w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm px-3 py-2 border bg-white ${className}`}
+      className={`w-full bg-white border border-gray-300 rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 ${className}`}
       {...props}
     >
       {children}

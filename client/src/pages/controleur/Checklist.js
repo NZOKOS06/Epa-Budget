@@ -155,7 +155,7 @@ export default function ControleurChecklist() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Checklist Visa Contrôleur</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Checklist Visa Contrôleur</h1>
           <p className="text-gray-600 mt-1">Engagement #{engagement.numero}</p>
         </div>
         <Button variant="outline" onClick={() => navigate('/controleur/file-visas')}>
@@ -175,7 +175,7 @@ export default function ControleurChecklist() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Montant de l'Engagement</p>
-                <p className="text-2xl font-bold text-gray-900">{formatMontant(engagement.montant)}</p>
+                <p className="text-xl font-semibold text-gray-900">{formatMontant(engagement.montant)}</p>
                 <Badge variant={engagement.montant > 5000000 ? 'danger' : 'warning'} className="mt-1">
                   {engagement.montant > 5000000 ? 'PRIORITÉ HAUTE' : 'PRIORITÉ NORMALE'}
                 </Badge>
@@ -197,7 +197,7 @@ export default function ControleurChecklist() {
           {/* Checklist */}
           <Card>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Points de Contrôle Obligatoires</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Points de Contrôle Obligatoires</h2>
               <p className="text-sm text-gray-600 mt-1">Vérifiez chaque point avant de valider l'engagement</p>
             </div>
 
@@ -231,7 +231,7 @@ export default function ControleurChecklist() {
 
           {/* Commentaire de Visa */}
           <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Commentaire du Contrôleur</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Commentaire du Contrôleur</h2>
             <textarea
               className="input-field min-h-[100px]"
               placeholder="Ajoutez vos observations ici..."
@@ -248,15 +248,15 @@ export default function ControleurChecklist() {
             <div className="space-y-4">
               <div>
                 <p className="text-xs text-primary-700 uppercase font-semibold">AE Disponible (Avant)</p>
-                <p className="text-xl font-bold text-primary-900">{formatMontant(engagement.ae_disponible)}</p>
+                <p className="text-xl font-semibold text-primary-900">{formatMontant(engagement.ae_disponible)}</p>
               </div>
               <div className="pt-2 border-t border-primary-200">
                 <p className="text-xs text-primary-700 uppercase font-semibold">Montant Engagement</p>
-                <p className="text-xl font-bold text-danger-600">- {formatMontant(engagement.montant)}</p>
+                <p className="text-xl font-semibold text-danger-600">- {formatMontant(engagement.montant)}</p>
               </div>
               <div className="pt-2 border-t border-primary-200">
                 <p className="text-xs text-primary-700 uppercase font-semibold">AE Résiduel (Prévision)</p>
-                <p className={`text-xl font-bold ${engagement.ae_disponible - engagement.montant < 0 ? 'text-danger-700' : 'text-success-700'}`}>
+                <p className={`text-xl font-semibold ${engagement.ae_disponible - engagement.montant < 0 ? 'text-danger-700' : 'text-success-700'}`}>
                   {formatMontant(engagement.ae_disponible - engagement.montant)}
                 </p>
               </div>
@@ -319,7 +319,7 @@ export default function ControleurChecklist() {
       {showRefusModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Motif de Refus (Obligatoire)</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Motif de Refus (Obligatoire)</h3>
             <p className="text-sm text-gray-600 mb-4">Indiquez précisément la raison du rejet pour permettre au service de corriger la demande.</p>
             <textarea
               className="input-field min-h-[120px] mb-4"

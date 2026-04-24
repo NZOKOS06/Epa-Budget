@@ -14,21 +14,20 @@ export function Button({
   type = 'button',
   ...props
 }) {
-  const baseClasses = 'font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none';
-  
+  const baseClasses = 'font-medium rounded-md shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
+
   const variants = {
-    primary: 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800',
-    secondary: 'bg-gradient-to-r from-secondary-600 to-secondary-700 text-white hover:from-secondary-700 hover:to-secondary-800',
-    success: 'bg-gradient-to-r from-success-600 to-success-700 text-white hover:from-success-700 hover:to-success-800',
-    danger: 'bg-gradient-to-r from-danger-600 to-danger-700 text-white hover:from-danger-700 hover:to-danger-800',
-    outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50',
-    ghost: 'text-gray-700 hover:bg-gray-100',
+    primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
+    success: 'bg-success-600 text-white hover:bg-success-700 focus:ring-success-500',
+    danger: 'bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500',
+    outline: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:ring-primary-500',
+    ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   };
 
   const sizes = {
-    sm: 'py-2 px-4 text-sm',
-    md: 'py-2.5 px-6 text-base',
-    lg: 'py-3 px-8 text-lg',
+    sm: 'py-1.5 px-3 text-xs',
+    md: 'py-2 px-4 text-sm',
+    lg: 'py-2.5 px-6 text-base',
   };
 
   return (

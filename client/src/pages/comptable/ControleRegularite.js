@@ -55,7 +55,7 @@ export default function ComptableControleRegularite() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contrôle de Régularité & Liquidations</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Contrôle de Régularité & Liquidations</h1>
           <p className="text-gray-600 mt-1">Validation de la régularité comptable et préparation au paiement</p>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function ComptableControleRegularite() {
       {/* Tableau des liquidations */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Liquidations en attente</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Liquidations en attente</h2>
           <p className="text-sm text-gray-600 mt-1">
             {liquidations.length} dossier(s) nécessitant un contrôle de régularité
           </p>
@@ -145,7 +145,7 @@ export default function ComptableControleRegularite() {
         <Card>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Dossier #{selectedLiquidation.engagement_numero}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Dossier #{selectedLiquidation.engagement_numero}</h2>
               <p className="text-sm text-gray-600 mt-1">Vérification de la liquidation (RG-12, RG-13)</p>
             </div>
             <Button variant="outline" onClick={() => setSelectedLiquidation(null)}>

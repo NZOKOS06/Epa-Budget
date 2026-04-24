@@ -160,7 +160,7 @@ export default function ControleurJournalControles() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Journal des Contrôles</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Journal des Contrôles</h1>
           <p className="text-gray-600 mt-1">Historique complet des visas et contrôles effectués</p>
         </div>
         <Button onClick={handleExport}>
@@ -249,7 +249,7 @@ export default function ControleurJournalControles() {
       {/* Graphique d'évolution */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Évolution des Contrôles</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Évolution des Contrôles</h2>
           <p className="text-sm text-gray-600 mt-1">
             Derniers 30 jours - Visas favorables vs défavorables
           </p>
@@ -268,7 +268,7 @@ export default function ControleurJournalControles() {
       {/* Tableau des contrôles */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Historique des contrôles</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Historique des contrôles</h2>
           <p className="text-sm text-gray-600 mt-1">
             {controlesFiltres.length} contrôle(s) trouvé(s)
           </p>
@@ -358,13 +358,13 @@ export default function ControleurJournalControles() {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">Total contrôles</p>
-            <p className="text-3xl font-bold text-gray-900">{controles.length}</p>
+            <p className="text-2xl font-semibold text-gray-900">{controles.length}</p>
           </div>
         </Card>
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">Visas apposés</p>
-            <p className="text-3xl font-bold text-success-600">
+            <p className="text-2xl font-semibold text-success-600">
               {controles.filter(c => c.statut === 'APPROUVE').length}
             </p>
           </div>
@@ -372,7 +372,7 @@ export default function ControleurJournalControles() {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">Refusés</p>
-            <p className="text-3xl font-bold text-danger-600">
+            <p className="text-2xl font-semibold text-danger-600">
               {controles.filter(c => c.statut === 'REFUSE').length}
             </p>
           </div>

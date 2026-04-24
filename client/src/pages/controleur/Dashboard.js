@@ -99,7 +99,7 @@ export default function ControleurDashboard() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord du Contrôleur</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Tableau de Bord du Contrôleur</h1>
           <p className="text-gray-600 mt-1">Vue d'ensemble des contrôles budgétaires et visas</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -147,7 +147,7 @@ export default function ControleurDashboard() {
       {/* File d'Attente Prioritaire */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">File d'Attente Prioritaire</h2>
+          <h2 className="text-xl font-semibold text-gray-900">File d'Attente Prioritaire</h2>
           <p className="text-sm text-gray-600 mt-1">
             Engagements en attente de visa (triés par montant décroissant)
           </p>
@@ -210,7 +210,7 @@ export default function ControleurDashboard() {
       {data.alertes.length > 0 && (
         <Card className="border-l-4 border-l-danger-500">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Alertes de Dérive Budgétaire</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Alertes de Dérive Budgétaire</h2>
             <p className="text-sm text-gray-600 mt-1">
               Engagements présentant des risques de dépassement
             </p>
@@ -251,7 +251,7 @@ export default function ControleurDashboard() {
       {/* Évolution des Contrôles */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Évolution des Contrôles</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Évolution des Contrôles</h2>
           <p className="text-sm text-gray-600 mt-1">
             Derniers contrôles effectués (favorables vs défavorables)
           </p>
@@ -270,7 +270,7 @@ export default function ControleurDashboard() {
       {/* Journal des Contrôles Récents */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Journal des Contrôles Récents</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Journal des Contrôles Récents</h2>
           <p className="text-sm text-gray-600 mt-1">
             Les 10 derniers contrôles effectués
           </p>

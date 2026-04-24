@@ -187,7 +187,7 @@ export default function ServicesDemandesEngagements() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Demandes d'Engagements</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Demandes d'Engagements</h1>
           <p className="text-gray-600 mt-1">Créer et suivre vos demandes d'engagements</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
@@ -201,7 +201,7 @@ export default function ServicesDemandesEngagements() {
       {/* Liste des demandes */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Mes demandes</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Mes demandes</h2>
           <p className="text-sm text-gray-600 mt-1">
             {filteredEngagements.length} demande(s) trouvée(s)
           </p>
@@ -323,9 +323,9 @@ export default function ServicesDemandesEngagements() {
       {/* Modal Formulaire */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Nouvelle Demande d'Engagement</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Nouvelle Demande d'Engagement</h3>
               <button
                 onClick={() => setShowForm(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -479,9 +479,9 @@ export default function ServicesDemandesEngagements() {
       {/* Modal Détails */}
       {showDetails && selectedEngagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-lg shadow-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-6 border-b pb-4">
-              <h3 className="text-xl font-bold text-gray-900">Détails de la demande {selectedEngagement.numero}</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Détails de la demande {selectedEngagement.numero}</h3>
               <button onClick={() => setShowDetails(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

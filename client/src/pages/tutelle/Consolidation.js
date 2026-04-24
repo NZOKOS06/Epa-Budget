@@ -65,7 +65,7 @@ export default function TutelleConsolidation() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Consolidation ACPCE</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Consolidation ACPCE</h1>
           <p className="text-gray-600 mt-1">Vue consolidée de l'exécution budgétaire</p>
         </div>
         <Button>
@@ -97,7 +97,7 @@ export default function TutelleConsolidation() {
       {/* Heatmap Programmes */}
       <Card>
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-gray-900">État d'Exécution par Programme</h2>
+          <h2 className="text-xl font-semibold text-gray-900">État d'Exécution par Programme</h2>
           <p className="text-sm text-gray-600 mt-1">
             Programme 01 (rouge) : Budget totalement consommé
           </p>

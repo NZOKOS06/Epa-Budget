@@ -147,7 +147,7 @@ export default function ComptableComptesAnnuels() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Comptes Annuels</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Comptes Annuels</h1>
           <p className="text-gray-600 mt-1">Gestion des comptes administratifs et financiers</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -191,7 +191,7 @@ export default function ComptableComptesAnnuels() {
       {/* Liste des comptes */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">États Financiers</h2>
+          <h2 className="text-xl font-semibold text-gray-900">États Financiers</h2>
           <p className="text-sm text-gray-600 mt-1">Comptes annuels {anneeFilter}</p>
         </div>
 

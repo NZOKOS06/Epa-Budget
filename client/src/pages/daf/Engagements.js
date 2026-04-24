@@ -340,7 +340,7 @@ export default function DAFEngagements() {
     <div className="space-y-6">
       {/* En-tête */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Engagements</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Engagements</h1>
         <p className="text-gray-600 mt-1">Gestion des engagements via un tableau Kanban</p>
       </div>
 
@@ -372,9 +372,9 @@ export default function DAFEngagements() {
       {/* Modal de Détails - Selon documentation */}
       {showModal && selectedEngagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-lg shadow-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Détails de l'Engagement - {selectedEngagement.numero}
               </h3>
               <button

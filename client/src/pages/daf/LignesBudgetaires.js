@@ -151,7 +151,7 @@ export default function DAFLignesBudgetaires() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lignes Budgétaires</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Lignes Budgétaires</h1>
           <p className="text-gray-600 mt-1">Gestion détaillée des lignes budgétaires avec crédits AE/CP</p>
         </div>
         <Button onClick={handleOpenCreate} className="flex items-center" disabled={!selectedProgramme}>
@@ -274,7 +274,7 @@ export default function DAFLignesBudgetaires() {
       {selectedProgramme ? (
         <Card>
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Tableau des Lignes Budgétaires</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Tableau des Lignes Budgétaires</h2>
             <p className="text-sm text-gray-600 mt-1">
               {lignesFiltrees.length} ligne(s) trouvée(s)
             </p>
@@ -386,9 +386,9 @@ export default function DAFLignesBudgetaires() {
       {/* Modal Création/Modification Ligne */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
             <div className="p-6 border-b">
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900">
                 {isEditing ? 'Modifier la Ligne' : 'Nouvelle Ligne Budgétaire'}
               </h3>
               <p className="text-sm text-gray-500 mt-1">

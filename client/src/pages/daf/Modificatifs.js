@@ -174,7 +174,7 @@ export default function DAFModificatifs() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Modificatifs</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Modificatifs</h1>
           <p className="text-gray-600 mt-1">Gestion des modificatifs budgétaires (&gt;10% d'une ligne)</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
@@ -188,7 +188,7 @@ export default function DAFModificatifs() {
       {/* Liste des Modificatifs - Selon documentation */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Liste des Modificatifs</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Liste des Modificatifs</h2>
           <p className="text-sm text-gray-600 mt-1">
             {modificatifs.length} modificatif(s) enregistré(s)
           </p>
@@ -289,9 +289,9 @@ export default function DAFModificatifs() {
       {/* Modal Formulaire - Selon documentation */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Nouveau Modificatif</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Nouveau Modificatif</h3>
               <button
                 onClick={() => {
                   setShowForm(false);

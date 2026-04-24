@@ -48,7 +48,7 @@ export function TableRow({ children, className = '', onClick }) {
  */
 export function TableHead({ children, className = '' }) {
   return (
-    <th className={`px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider ${className}`}>
+    <th className={`px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider ${className}`}>
       {children}
     </th>
   );
@@ -59,7 +59,7 @@ export function TableHead({ children, className = '' }) {
  */
 export function TableCell({ children, className = '' }) {
   return (
-    <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${className}`}>
+    <td className={`px-4 py-3 whitespace-nowrap text-sm text-gray-700 ${className}`}>
       {children}
     </td>
   );

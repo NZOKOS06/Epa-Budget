@@ -72,7 +72,7 @@ export default function ServicesIndicateurs() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Indicateurs de Performance</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Indicateurs de Performance</h1>
           <p className="text-gray-600 mt-1">Suivi des indicateurs d'engagement par programme</p>
         </div>
         <Button>
@@ -118,7 +118,7 @@ export default function ServicesIndicateurs() {
       {/* Tableau des Indicateurs par Programme */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Performance par Programme</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Performance par Programme</h2>
           <p className="text-sm text-gray-600 mt-1">Détail des engagements par programme</p>
         </div>
 
@@ -188,7 +188,7 @@ export default function ServicesIndicateurs() {
       {/* Résumé et Actions */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Résumé et Actions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Résumé et Actions</h2>
           <p className="text-sm text-gray-600 mt-1">Vue d'ensemble et options d'export</p>
         </div>
         
@@ -255,7 +255,7 @@ export default function ServicesIndicateurs() {
       {/* Graphiques */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Évolution Globale des Engagements Approuvés</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Évolution Globale des Engagements Approuvés</h2>
         </div>
         <div className="h-64">
           <LineChart

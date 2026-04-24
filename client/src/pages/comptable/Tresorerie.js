@@ -70,7 +70,7 @@ export default function ComptableTresorerie() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Trésorerie</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Trésorerie</h1>
           <p className="text-gray-600 mt-1">Suivi des soldes et plan de trésorerie</p>
         </div>
         <Button>
@@ -102,7 +102,7 @@ export default function ComptableTresorerie() {
       {/* Soldes comptes */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Soldes par compte</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Soldes par compte</h2>
           <p className="text-sm text-gray-600 mt-1">État actuel des comptes bancaires</p>
         </div>
         <div className="overflow-x-auto">
@@ -138,7 +138,7 @@ export default function ComptableTresorerie() {
       {/* Plan de flux 90 jours */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Plan de flux 90 jours</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Plan de flux 90 jours</h2>
           <p className="text-sm text-gray-600 mt-1">Prévision des encaissements et décaissements</p>
         </div>
         <LineChart

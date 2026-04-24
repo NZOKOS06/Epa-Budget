@@ -141,7 +141,7 @@ export default function ComptableCloture() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Clôture Comptable</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Clôture Comptable</h1>
           <p className="text-gray-600 mt-1">Gestion de la clôture des comptes annuels</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -187,7 +187,7 @@ export default function ComptableCloture() {
 
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Situation d'Exécution par Programme</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Situation d'Exécution par Programme</h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -239,7 +239,7 @@ export default function ComptableCloture() {
       {/* Étapes de clôture */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Processus de Clôture</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Processus de Clôture</h2>
           <p className="text-sm text-gray-600 mt-1">Suivi des étapes de génération et certification</p>
         </div>
 

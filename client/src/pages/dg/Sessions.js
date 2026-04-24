@@ -71,7 +71,7 @@ export default function DGSessions() {
     <div className="space-y-6">
       {/* En-tête */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Sessions</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Sessions</h1>
         <p className="text-gray-600 mt-1">Visualisation des sessions d'approbation mensuelles et e-voting</p>
       </div>
 
@@ -79,7 +79,7 @@ export default function DGSessions() {
         {/* Calendrier des Sessions - Selon documentation */}
         <div className="lg:col-span-2">
           <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Calendrier des Sessions</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Calendrier des Sessions</h2>
             <Calendar
               events={sessionEvents}
               onDateClick={handleDateClick}
@@ -93,7 +93,7 @@ export default function DGSessions() {
           {selectedSession ? (
             <Card>
               <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
                   Session {format(new Date(selectedSession.mois), 'MMMM yyyy', { locale: fr })}
                 </h2>
                 
@@ -152,7 +152,7 @@ export default function DGSessions() {
       {/* Liste des Engagements de la Session - Selon documentation */}
       {selectedSession && selectedSession.engagements && (
         <Card>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Liste des Engagements de la Session
           </h2>
           {selectedSession.engagements.length > 0 ? (
@@ -207,9 +207,9 @@ export default function DGSessions() {
       {/* Modal E-Voting - Selon documentation */}
       {showVoteModal && selectedSession && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">E-Voting</h3>
+              <h3 className="text-xl font-semibold text-gray-900">E-Voting</h3>
               <button
                 onClick={() => setShowVoteModal(false)}
                 className="text-gray-400 hover:text-gray-600"

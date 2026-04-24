@@ -220,7 +220,7 @@ export default function DGApprobations() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Approbations Stratégiques</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Approbations Stratégiques</h1>
           <p className="text-gray-600 mt-1">Approbation ou refus des engagements validés par le comptable</p>
         </div>
         {selected.length > 0 && (
@@ -307,7 +307,7 @@ export default function DGApprobations() {
       {/* Liste des Engagements en Attente - Selon documentation */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Liste des Engagements en Attente</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Liste des Engagements en Attente</h2>
           <p className="text-sm text-gray-600 mt-1">
             {filteredEngagements.length} engagement(s) en attente de validation
           </p>
@@ -395,7 +395,7 @@ export default function DGApprobations() {
       {/* Approbations Approuvées */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Approbations Approuvées</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Approbations Approuvées</h2>
           <p className="text-sm text-gray-600 mt-1">
             {filteredEngagementsApprouves.length} engagement(s) approuvé(s)
           </p>
@@ -515,9 +515,9 @@ export default function DGApprobations() {
       {/* Modal de Détails avec 4 Onglets - Selon documentation */}
       {showModal && selectedEngagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-lg shadow-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Détails de l'Engagement - {selectedEngagement.numero}
               </h3>
               <button
@@ -744,13 +744,13 @@ export default function DGApprobations() {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-6">
-                    <div className="p-5 bg-primary-50 rounded-2xl border border-primary-100 shadow-sm">
+                    <div className="p-5 bg-primary-50 rounded-lg border border-primary-100 shadow-sm">
                       <p className="text-sm text-primary-700 font-medium mb-1">Disponible avant validation</p>
                       <p className="text-2xl font-black text-primary-900">
                         {formatMontant(selectedEngagement.ae_disponible || 0)}
                       </p>
                     </div>
-                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="p-5 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
                       <p className="text-sm text-gray-600 font-medium mb-1">Reste après validation</p>
                       <p className={`text-2xl font-black ${
                         (selectedEngagement.ae_disponible - selectedEngagement.montant) < 0 
@@ -762,7 +762,7 @@ export default function DGApprobations() {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 space-y-4">
                     <div className="flex justify-between text-sm font-bold text-gray-700">
                       <span>Impact sur l'article {selectedEngagement.article_code}</span>
                       <span>{Math.round(((selectedEngagement.montant || 0) / (selectedEngagement.ae_disponible || 1)) * 100)}%</span>

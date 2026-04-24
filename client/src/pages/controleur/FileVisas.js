@@ -103,7 +103,7 @@ export default function ControleurFileVisas() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">File des Visas</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">File des Visas</h1>
           <p className="text-gray-600 mt-1">Contrôle de régularité et disponibilité des crédits</p>
         </div>
       </div>
@@ -168,7 +168,7 @@ export default function ControleurFileVisas() {
       {/* Tableau des visas */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Liste des Engagements soumis</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Liste des Engagements soumis</h2>
           <p className="text-sm text-gray-600 mt-1">
             {visasFiltres.length} dossier(s) en attente de visa
           </p>

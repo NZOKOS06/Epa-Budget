@@ -41,7 +41,7 @@ export default function ServicesProgrammes() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Actions Programme</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Actions Programme</h1>
           <p className="text-gray-600 mt-1">Consultation des programmes et suivi de leur exécution</p>
         </div>
       </div>
@@ -49,7 +49,7 @@ export default function ServicesProgrammes() {
       {/* Liste des programmes */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Programmes de l'EPA</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Programmes de l'EPA</h2>
           <p className="text-sm text-gray-600 mt-1">
             {programmes.length} programme(s) disponible(s)
           </p>
@@ -123,7 +123,7 @@ export default function ServicesProgrammes() {
 
       {/* Calendrier des sessions */}
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Calendrier des Sessions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Calendrier des Sessions</h2>
         <Calendar
           events={[
             {

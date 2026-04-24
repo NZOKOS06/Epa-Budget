@@ -21,7 +21,7 @@ export function Heatmap({ data, className = '' }) {
         {data.map((item, index) => (
           <div
             key={index}
-            className={`${getColor(item.percentage)} w-8 h-8 rounded transition-all duration-200 hover:scale-110 hover:shadow-lg cursor-pointer relative group`}
+            className={`${getColor(item.percentage)} w-8 h-8 rounded cursor-pointer relative group`}
             title={getTooltip(item)}
           >
             {/* Tooltip on hover */}

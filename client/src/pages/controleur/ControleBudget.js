@@ -152,7 +152,7 @@ export default function ControleurControleBudget() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contrôle Budgétaire</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Contrôle Budgétaire</h1>
           <p className="text-gray-600 mt-1">Analyse détaillée des articles budgétaires et engagements</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -206,7 +206,7 @@ export default function ControleurControleBudget() {
       {/* Filtres */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Filtres</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Filtres</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -256,7 +256,7 @@ export default function ControleurControleBudget() {
           {/* Articles Budgétaires */}
           <Card>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Articles Budgétaires</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Articles Budgétaires</h2>
               <p className="text-sm text-gray-600 mt-1">
                 {filteredArticles.length} article(s) affiché(s)
               </p>
@@ -316,7 +316,7 @@ export default function ControleurControleBudget() {
           {/* Engagements en Attente */}
           <Card>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Engagements en Attente de Visa</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Engagements en Attente de Visa</h2>
               <p className="text-sm text-gray-600 mt-1">
                 {filteredEngagements.length} engagement(s) affiché(s)
               </p>
@@ -373,7 +373,7 @@ export default function ControleurControleBudget() {
           {/* Graphique des Articles */}
           <Card>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Situation des Articles Budgétaires</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Situation des Articles Budgétaires</h2>
             </div>
             <div className="h-96">
               <BarChart
@@ -392,7 +392,7 @@ export default function ControleurControleBudget() {
       {data.alertes.length > 0 && (
         <Card className="border-l-4 border-l-danger-500">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Alertes de Dérive Budgétaire</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Alertes de Dérive Budgétaire</h2>
             <p className="text-sm text-gray-600 mt-1">
               Risques de dépassement détectés
             </p>

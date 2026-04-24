@@ -84,7 +84,7 @@ export default function DAFRapportsInternes() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Rapports Internes</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Rapports Internes</h1>
           <p className="text-gray-600 mt-1">Génération de rapports mensuels d'exécution budgétaire</p>
         </div>
         <Button onClick={() => setShowGenerateModal(true)}>
@@ -99,7 +99,7 @@ export default function DAFRapportsInternes() {
       {rapports.length > 0 && (
         <Card>
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Graphique d'Évolution</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Graphique d'Évolution</h2>
             <p className="text-sm text-gray-600 mt-1">Évolution mensuelle des engagements - Les 12 derniers mois</p>
           </div>
           <LineChart
@@ -117,7 +117,7 @@ export default function DAFRapportsInternes() {
       {/* Liste des Rapports - Selon documentation */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Liste des Rapports</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Liste des Rapports</h2>
           <p className="text-sm text-gray-600 mt-1">
             Rapports mensuels d'exécution budgétaire
           </p>
@@ -224,9 +224,9 @@ export default function DAFRapportsInternes() {
       {/* Modal Génération Rapport - Selon documentation */}
       {showGenerateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Générer un Rapport</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Générer un Rapport</h3>
               <button
                 onClick={() => setShowGenerateModal(false)}
                 className="text-gray-400 hover:text-gray-600"

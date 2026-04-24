@@ -101,7 +101,7 @@ export default function DAFProgrammes() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Budget-Programme</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Budget-Programme</h1>
           <p className="text-gray-600 mt-1">Gestion et suivi des programmes budgétaires de l'EPA</p>
         </div>
         <Button onClick={() => setShowModalCreate(true)} className="flex items-center">
@@ -147,7 +147,7 @@ export default function DAFProgrammes() {
       {/* Liste des Programmes - Selon documentation */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Liste des Programmes</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Liste des Programmes</h2>
           <p className="text-sm text-gray-600 mt-1">
             {filteredProgrammes.length} programme(s) de l'année {annee}
           </p>
@@ -237,7 +237,7 @@ export default function DAFProgrammes() {
         <Card>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Détails du Programme</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Détails du Programme</h2>
               <p className="text-sm text-gray-600 mt-1">
                 {selectedProgramme.code} - {selectedProgramme.libelle}
               </p>
@@ -274,31 +274,31 @@ export default function DAFProgrammes() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">Budget initial</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">
+                <p className="text-xl font-semibold text-gray-900 mt-1">
                   {formatMontant(selectedProgramme.budget_initial || 0)}
                 </p>
               </div>
               <div className="p-4 bg-primary-50 rounded-lg">
                 <p className="text-sm text-primary-700">Engagements totaux</p>
-                <p className="text-xl font-bold text-primary-900 mt-1">
+                <p className="text-xl font-semibold text-primary-900 mt-1">
                   {formatMontant(selectedProgramme.montant_engage || 0)}
                 </p>
               </div>
               <div className="p-4 bg-success-50 rounded-lg">
                 <p className="text-sm text-success-700">Paiements totaux</p>
-                <p className="text-xl font-bold text-success-900 mt-1">
+                <p className="text-xl font-semibold text-success-900 mt-1">
                   {formatMontant(selectedProgramme.montant_paye || 0)}
                 </p>
               </div>
               <div className="p-4 bg-warning-50 rounded-lg">
                 <p className="text-sm text-warning-700">Reste à engager</p>
-                <p className="text-xl font-bold text-warning-900 mt-1">
+                <p className="text-xl font-semibold text-warning-900 mt-1">
                   {formatMontant((selectedProgramme.budget_initial || 0) - (selectedProgramme.montant_engage || 0))}
                 </p>
               </div>
               <div className="p-4 bg-info-50 rounded-lg">
                 <p className="text-sm text-info-700">Reste à payer</p>
-                <p className="text-xl font-bold text-info-900 mt-1">
+                <p className="text-xl font-semibold text-info-900 mt-1">
                   {formatMontant((selectedProgramme.montant_engage || 0) - (selectedProgramme.montant_paye || 0))}
                 </p>
               </div>
@@ -375,9 +375,9 @@ export default function DAFProgrammes() {
       {/* Modal Création Programme */}
       {showModalCreate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
             <div className="p-6 border-b">
-              <h3 className="text-xl font-bold text-gray-900">Nouveau Programme</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Nouveau Programme</h3>
               <p className="text-sm text-gray-500 mt-1">Ajouter un nouveau chapitre budgétaire</p>
             </div>
             <form onSubmit={handleCreateProgramme} className="p-6 space-y-4">

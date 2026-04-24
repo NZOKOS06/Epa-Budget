@@ -84,7 +84,7 @@ export default function ServicesReceptions() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Réceptions / Liquidations</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Réceptions / Liquidations</h1>
           <p className="text-gray-600 mt-1">Gestion des PV de réception et liquidation</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
@@ -98,7 +98,7 @@ export default function ServicesReceptions() {
       {/* Liste des réceptions */}
       <Card>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">PV de Réception</h2>
+          <h2 className="text-xl font-semibold text-gray-900">PV de Réception</h2>
           <p className="text-sm text-gray-600 mt-1">
             {receptions.length} réception(s) enregistrée(s)
           </p>
@@ -184,7 +184,7 @@ export default function ServicesReceptions() {
         <Card>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">PV Réception #{selectedReception.pv_numero || `PV-${selectedReception.id}`}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">PV Réception #{selectedReception.pv_numero || `PV-${selectedReception.id}`}</h2>
               <p className="text-sm text-gray-600 mt-1">Engagement: {selectedReception.engagement_numero}</p>
             </div>
             <Button variant="outline" onClick={() => setSelectedReception(null)}>
@@ -263,9 +263,9 @@ export default function ServicesReceptions() {
       {/* Modal Nouvelle Réception */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Enregistrer un PV de Réception</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Enregistrer un PV de Réception</h3>
               <button
                 onClick={() => setShowForm(false)}
                 className="text-gray-400 hover:text-gray-600"
