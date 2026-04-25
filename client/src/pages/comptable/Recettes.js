@@ -10,9 +10,11 @@ export default function ComptableRecettes() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    nature_recette: '',
+    numero_quittance: '',
     montant: '',
-    date_recette: new Date().toISOString().split('T')[0],
+    date_encaissement: new Date().toISOString().split('T')[0],
+    source: 'permis_conduire',
+    reference_titre: '',
   });
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export default function ComptableRecettes() {
       setRecettes(response.data || []);
       
       // Calculer statistiques
-      const total = response.data?.reduce((sum, r) => sum + (r.montant || 0), 0) || 0;
+      const total = response.data?.reduce((sum, r) => sum + (parseFloat(r.montant) || 0), 0) || 0;
       const attendues = 300000000; // Données de démo
       const encaissees = total;
       setStats({ total, attendues, encaissees });
@@ -41,10 +43,17 @@ export default function ComptableRecettes() {
     try {
       await api.post('/comptable/recettes', formData);
       setShowForm(false);
-      setFormData({ nature_recette: '', montant: '', date_recette: new Date().toISOString().split('T')[0] });
+      setFormData({ 
+        numero_quittance: '', 
+        montant: '', 
+        date_encaissement: new Date().toISOString().split('T')[0],
+        source: 'permis_conduire',
+        reference_titre: ''
+      });
       fetchRecettes();
     } catch (error) {
       console.error('Erreur:', error);
+      alert(error.response?.data?.message || 'Erreur lors de l\'enregistrement');
     }
   };
 
@@ -177,10 +186,10 @@ export default function ComptableRecettes() {
                 {recettes.map((recette) => (
                   <TableRow key={recette.id} hover>
                     <TableCell>
-                      <span className="font-semibold text-primary-600">{recette.numero}</span>
+                      <span className="font-semibold text-primary-600">{recette.numero_quittance}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-gray-900">{recette.nature_recette}</span>
+                      <span className="text-gray-900">{recette.source.replace('_', ' ')}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-semibold text-gray-900">
@@ -189,12 +198,12 @@ export default function ComptableRecettes() {
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600">
-                        {format(new Date(recette.date_recette), 'dd/MM/yyyy', { locale: fr })}
+                        {format(new Date(recette.date_encaissement), 'dd/MM/yyyy', { locale: fr })}
                       </span>
                     </TableCell>
                     <TableCell>
                       <Badge variant={recette.statut === 'ENCAISSE' ? 'success' : 'warning'}>
-                        {recette.statut || 'En attente'}
+                        {recette.statut || 'Enregistré'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -239,14 +248,43 @@ export default function ComptableRecettes() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nature de la recette
+                  Numéro de Quittance (RG-08)
                 </label>
                 <input
                   type="text"
-                  value={formData.nature_recette}
-                  onChange={(e) => setFormData({ ...formData, nature_recette: e.target.value })}
+                  value={formData.numero_quittance}
+                  onChange={(e) => setFormData({ ...formData, numero_quittance: e.target.value })}
                   className="input-field"
-                  placeholder="Ex: Taxes, Subventions..."
+                  placeholder="Ex: Q-2026-001"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Source de la recette
+                </label>
+                <select
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  className="input-field"
+                  required
+                >
+                  <option value="permis_conduire">Permis de conduire</option>
+                  <option value="carte_grise">Carte grise</option>
+                  <option value="licence_transport">Licence de transport</option>
+                  <option value="agrement_auto_ecole">Agrément auto-école</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Référence du Titre
+                </label>
+                <input
+                  type="text"
+                  value={formData.reference_titre}
+                  onChange={(e) => setFormData({ ...formData, reference_titre: e.target.value })}
+                  className="input-field"
+                  placeholder="Ex: TITRE-2026-X"
                   required
                 />
               </div>
@@ -259,18 +297,18 @@ export default function ComptableRecettes() {
                   value={formData.montant}
                   onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
                   className="input-field"
-                  placeholder="Ex: 300000000"
+                  placeholder="Ex: 50000"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date
+                  Date d'encaissement
                 </label>
                 <input
                   type="date"
-                  value={formData.date_recette}
-                  onChange={(e) => setFormData({ ...formData, date_recette: e.target.value })}
+                  value={formData.date_encaissement}
+                  onChange={(e) => setFormData({ ...formData, date_encaissement: e.target.value })}
                   className="input-field"
                   required
                 />
@@ -293,5 +331,6 @@ export default function ComptableRecettes() {
         </div>
       )}
     </div>
+
   );
 }
