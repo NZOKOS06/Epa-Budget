@@ -152,7 +152,7 @@ export default function DAFLignesBudgetaires() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Lignes Budgétaires</h1>
-          <p className="text-gray-600 mt-1">Gestion détaillée des lignes budgétaires avec crédits AE/CP</p>
+          <p className="text-gray-500 mt-1">Gestion détaillée des lignes budgétaires avec crédits AE/CP</p>
         </div>
         <Button onClick={handleOpenCreate} className="flex items-center" disabled={!selectedProgramme}>
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,7 +275,7 @@ export default function DAFLignesBudgetaires() {
         <Card>
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Tableau des Lignes Budgétaires</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               {lignesFiltrees.length} ligne(s) trouvée(s)
             </p>
           </div>
@@ -304,7 +304,7 @@ export default function DAFLignesBudgetaires() {
                     const programme = programmes.find(p => p.id === ligne.programme_id);
                     
                     return (
-                      <TableRow key={ligne.id}>
+                      <TableRow key={ligne.id} hover>
                         <TableCell>
                           <span className="font-semibold text-primary-600">{ligne.code}</span>
                         </TableCell>

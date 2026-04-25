@@ -17,8 +17,6 @@ export default function Login() {
     try {
       const data = await authService.login(email, password);
       const user = data.user;
-      
-      // Rediriger selon le rôle
       const rolePath = {
         DG: '/dg/dashboard',
         DAF: '/daf/programmes',
@@ -27,9 +25,13 @@ export default function Login() {
         SERVICE: '/services/programmes',
         TUTELLE: '/tutelle/consolidation',
         CCDB: '/ccdb/piste-audit',
+        ADMIN: '/admin/dashboard',
       };
-
-      navigate(rolePath[user.role] || '/');
+      
+      // Utiliser window.location.href pour forcer le navigateur à recharger
+      // et obtenir la dernière version (buste le cache navigateur)
+      const targetPath = rolePath[user.role] || '/';
+      window.location.href = targetPath + '?v=' + Date.now();
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur de connexion');
     } finally {

@@ -148,7 +148,7 @@ export default function ComptableComptesAnnuels() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Comptes Annuels</h1>
-          <p className="text-gray-600 mt-1">Gestion des comptes administratifs et financiers</p>
+          <p className="text-gray-500 mt-1">Gestion des comptes administratifs et financiers</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
@@ -192,7 +192,7 @@ export default function ComptableComptesAnnuels() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">États Financiers</h2>
-          <p className="text-sm text-gray-600 mt-1">Comptes annuels {anneeFilter}</p>
+          <p className="text-sm text-gray-500 mt-1">Comptes annuels {anneeFilter}</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -207,7 +207,7 @@ export default function ComptableComptesAnnuels() {
             </TableHeader>
             <TableBody>
               {comptes.map((compte) => (
-                <TableRow key={compte.id}>
+                <TableRow key={compte.id} hover>
                   <TableCell>
                     <span className="font-semibold text-gray-900">{compte.annee}</span>
                   </TableCell>

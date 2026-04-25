@@ -39,7 +39,7 @@ export default function ControleurAlertesDerive() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Alertes de Dérive Budgétaire</h1>
-          <p className="text-gray-600 mt-1">Surveillance en temps réel des dépassements et seuils critiques</p>
+          <p className="text-gray-500 mt-1">Surveillance en temps réel des dépassements et seuils critiques</p>
         </div>
       </div>
 

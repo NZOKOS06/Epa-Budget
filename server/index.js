@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3001",
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -29,6 +29,7 @@ const tutelleRoutes = require('./routes/tutelle');
 const ccdbRoutes = require('./routes/ccdb');
 const notificationsRoutes = require('./routes/notifications');
 const liquidationsRoutes = require('./routes/liquidations');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dg', dgRoutes);
@@ -40,6 +41,7 @@ app.use('/api/tutelle', tutelleRoutes);
 app.use('/api/ccdb', ccdbRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/liquidations', liquidationsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // WebSocket pour notifications push
 io.on('connection', (socket) => {

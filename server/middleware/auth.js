@@ -7,6 +7,7 @@ const authenticate = async (req, res, next) => {
     const token = authHeader?.replace(/^Bearer\s+/i, '');
     
     if (!token) {
+      console.log('Auth Failed: Token manquant');
       return res.status(401).json({ message: 'Token manquant' });
     }
 
@@ -23,12 +24,14 @@ const authenticate = async (req, res, next) => {
     );
 
     if (result.rows.length === 0) {
+      console.log('Auth Failed: Utilisateur non trouvé ou inactif pour ID:', decoded.userId);
       return res.status(401).json({ message: 'Utilisateur non trouvé ou inactif' });
     }
 
     req.user = result.rows[0];
     next();
   } catch (error) {
+    console.log('Auth Failed: Token invalide ou expiré', error.message);
     res.status(401).json({ message: 'Token invalide ou expiré', error: error.message });
   }
 };

@@ -126,7 +126,7 @@ export default function DGPerformance() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Performance Budgétaire</h1>
-          <p className="text-gray-600 mt-1">Analyse détaillée de l'exécution budgétaire par programme</p>
+          <p className="text-gray-500 mt-1">Analyse détaillée de l'exécution budgétaire par programme</p>
         </div>
         <div className="flex items-center space-x-3">
           <Select
@@ -193,7 +193,7 @@ export default function DGPerformance() {
         <Card>
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Performance par Programme</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               {filteredIndicateurs.length} programme(s) affiché(s)
             </p>
           </div>
@@ -309,7 +309,7 @@ export default function DGPerformance() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Résumé Analytique</h2>
-          <p className="text-sm text-gray-600 mt-1">Vue d'ensemble et recommandations</p>
+          <p className="text-sm text-gray-500 mt-1">Vue d'ensemble et recommandations</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

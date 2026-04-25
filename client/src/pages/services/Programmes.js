@@ -42,7 +42,7 @@ export default function ServicesProgrammes() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Actions Programme</h1>
-          <p className="text-gray-600 mt-1">Consultation des programmes et suivi de leur exécution</p>
+          <p className="text-gray-500 mt-1">Consultation des programmes et suivi de leur exécution</p>
         </div>
       </div>
 
@@ -50,7 +50,7 @@ export default function ServicesProgrammes() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Programmes de l'EPA</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {programmes.length} programme(s) disponible(s)
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function ServicesProgrammes() {
                   const tauxExecution = budgetInitial > 0 ? Math.round((montantEngage / budgetInitial) * 100) : 0;
 
                   return (
-                    <TableRow key={prog.id}>
+                    <TableRow key={prog.id} hover>
                       <TableCell>
                         <span className="font-semibold text-primary-600">{prog.code}</span>
                       </TableCell>

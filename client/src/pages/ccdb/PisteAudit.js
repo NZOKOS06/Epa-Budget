@@ -115,7 +115,7 @@ export default function CCDBPisteAudit() {
               </TableHead>
               <TableBody>
                 {engagements.map((eng) => (
-                  <TableRow key={eng.id}>
+                  <TableRow key={eng.id} hover>
                     <TableCell>{eng.numero}</TableCell>
                     <TableCell>{eng.epa_nom}</TableCell>
                     <TableCell>{eng.programme_libelle}</TableCell>

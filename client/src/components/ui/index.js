@@ -10,4 +10,6 @@ export { KanbanBoard } from './Kanban';
 export { LineChart } from './LineChart';
 export { Calendar } from './Calendar';
 export { Select } from './Select';
+export { ProgressBar, StatusBadge } from './ProgressBar';
+export { PageHeader, FilterBar } from './PageHeader';
 

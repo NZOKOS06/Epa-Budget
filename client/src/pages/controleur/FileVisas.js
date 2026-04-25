@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, KPICard } from '../../components/ui';
+import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, PageHeader, KPICard } from '../../components/ui';
 import { getStatusMeta } from '../../utils/statusUtils';
 
 export default function ControleurFileVisas() {
@@ -100,13 +100,37 @@ export default function ControleurFileVisas() {
 
   return (
     <div className="space-y-6">
-      {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">File des Visas</h1>
-          <p className="text-gray-600 mt-1">Contrôle de régularité et disponibilité des crédits</p>
-        </div>
-      </div>
+      {/* Header premium */}
+      <PageHeader
+        title="File des Visas"
+        subtitle="Contrôle de régularité et disponibilité des crédits"
+        kpis={[
+          {
+            label: 'Dossiers en attente',
+            value: visasFiltres.length,
+            sub: 'à examiner',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
+          },
+          {
+            label: 'Urgents (>5M)',
+            value: visasFiltres.filter(v => parseFloat(v.montant) > 5000000).length,
+            sub: 'montants élevés',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+          },
+          {
+            label: 'Crédits suffisants',
+            value: visasFiltres.filter(v => parseFloat(v.ae_disponible) >= parseFloat(v.montant)).length,
+            sub: 'visa favorable',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+          },
+          {
+            label: 'Montant total',
+            value: formatMontant(visasFiltres.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)),
+            sub: 'en attente',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+          },
+        ]}
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -169,14 +193,14 @@ export default function ControleurFileVisas() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Liste des Engagements soumis</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {visasFiltres.length} dossier(s) en attente de visa
           </p>
         </div>
 
         {visasFiltres.length > 0 ? (
           <div className="overflow-x-auto">
-            <Table>
+            <Table striped>
               <TableHeader>
                 <TableHead>Numéro & Date</TableHead>
                 <TableHead>Demandeur / Service</TableHead>
@@ -192,7 +216,7 @@ export default function ControleurFileVisas() {
                   const hasFunds = parseFloat(visa.ae_disponible) >= parseFloat(visa.montant);
                   
                   return (
-                    <TableRow key={visa.id} className={isUrgent ? 'bg-danger-50/30' : ''}>
+                    <TableRow key={visa.id} className={isUrgent ? 'bg-danger-50/30' : ''} hover>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-bold text-primary-700">{visa.numero}</span>

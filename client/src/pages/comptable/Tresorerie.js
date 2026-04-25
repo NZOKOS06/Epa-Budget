@@ -71,7 +71,7 @@ export default function ComptableTresorerie() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Trésorerie</h1>
-          <p className="text-gray-600 mt-1">Suivi des soldes et plan de trésorerie</p>
+          <p className="text-gray-500 mt-1">Suivi des soldes et plan de trésorerie</p>
         </div>
         <Button>
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@ export default function ComptableTresorerie() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Soldes par compte</h2>
-          <p className="text-sm text-gray-600 mt-1">État actuel des comptes bancaires</p>
+          <p className="text-sm text-gray-500 mt-1">État actuel des comptes bancaires</p>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -114,7 +114,7 @@ export default function ComptableTresorerie() {
             </TableHeader>
             <TableBody>
               {data.soldes?.map((compte, index) => (
-                <TableRow key={index}>
+                <TableRow key={index} hover>
                   <TableCell>
                     <span className="font-medium text-gray-900">{compte.compte}</span>
                   </TableCell>
@@ -139,7 +139,7 @@ export default function ComptableTresorerie() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Plan de flux 90 jours</h2>
-          <p className="text-sm text-gray-600 mt-1">Prévision des encaissements et décaissements</p>
+          <p className="text-sm text-gray-500 mt-1">Prévision des encaissements et décaissements</p>
         </div>
         <LineChart
           data={data.planFlux || []}

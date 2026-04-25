@@ -55,7 +55,7 @@ export default function CCDBComptesAnnuels() {
             </TableHead>
             <TableBody>
               {comptes.map((compte) => (
-                <TableRow key={compte.id}>
+                <TableRow key={compte.id} hover>
                   <TableCell>{compte.epa_nom}</TableCell>
                   <TableCell>{compte.secteur}</TableCell>
                   <TableCell>{compte.annee}</TableCell>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { KPICard, Heatmap, LoadingSpinner, EmptyState, Card, LineChart, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
+import { KPICard, Heatmap, LoadingSpinner, EmptyState, Card, LineChart, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button, PageHeader, ProgressBar } from '../../components/ui';
 
 export default function DGDashboard() {
   const [data, setData] = useState({
@@ -123,21 +123,44 @@ export default function DGDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* En-tête de la page */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard Exécutif</h1>
-          <p className="text-gray-600 mt-1">Vue d'ensemble des activités budgétaires ACPCE 2026</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button className="btn-outline text-sm py-2 px-4 flex items-center">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Exporter
-          </button>
-        </div>
-      </div>
+      {/* Header premium */}
+      <PageHeader
+        title="Dashboard Exécutif"
+        subtitle="Vue d'ensemble des activités budgétaires ACPCE 2026"
+        kpis={[
+          {
+            label: 'En attente',
+            value: data.statistiques?.en_attente_approbation || 0,
+            sub: 'approbations',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+          },
+          {
+            label: 'Approuvés ce mois',
+            value: data.statistiques?.approbations_mois || 0,
+            sub: 'engagements',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+          },
+          {
+            label: 'Taux exécution',
+            value: `${data.statistiques?.taux_execution || 0}%`,
+            sub: 'global',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
+          },
+          {
+            label: 'Budget consommé',
+            value: formatMontant(data.statistiques?.budget_consomme || 0),
+            sub: 'sur budget initial',
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+          },
+        ]}
+      >
+        <button className="btn-outline text-sm py-2 px-4 flex items-center">
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Exporter
+        </button>
+      </PageHeader>
 
       {/* KPI Cards - Selon documentation : 4 cartes spécifiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -182,7 +205,7 @@ export default function DGDashboard() {
       <Card>
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Évolution Mensuelle des Engagements Approuvés</h2>
-          <p className="text-sm text-gray-600 mt-1">Les 12 derniers mois - Tendance d'approbation</p>
+          <p className="text-sm text-gray-500 mt-1">Les 12 derniers mois - Tendance d'approbation</p>
         </div>
         <LineChart 
           data={data.evolutionMensuelle.length > 0 ? data.evolutionMensuelle.map((item, index) => ({
@@ -212,7 +235,7 @@ export default function DGDashboard() {
       <Card>
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Heatmap d'Exécution des Programmes</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Taux d'exécution par programme - Codes couleurs : 🟢 &gt;80% (excellent), 🟡 50-80% (bon), 🟠 30-50% (moyen), 🔴 &lt;30% (faible)
           </p>
         </div>
@@ -247,14 +270,14 @@ export default function DGDashboard() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Engagements en attente d'approbation</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {data.engagements?.length || 0} engagement(s) validés par le comptable, en attente de votre approbation
           </p>
         </div>
 
         {data.engagements?.length > 0 ? (
           <div className="overflow-x-auto">
-            <Table>
+            <Table striped>
               <TableHeader>
                 <TableHead>Numéro</TableHead>
                 <TableHead>Montant</TableHead>
@@ -265,7 +288,7 @@ export default function DGDashboard() {
               </TableHeader>
               <TableBody>
                 {data.engagements.map((eng) => (
-                  <TableRow key={eng.id}>
+                  <TableRow key={eng.id} onClick={() => handleVoirDetails(eng)} hover>
                     <TableCell>
                       <span className="font-semibold text-primary-600">{eng.numero}</span>
                     </TableCell>
@@ -320,7 +343,7 @@ export default function DGDashboard() {
         <Card className="border-l-4 border-l-warning-500">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Alertes Urgentes</h2>
-            <p className="text-sm text-gray-600 mt-1">Les 5 dernières alertes nécessitant votre attention</p>
+            <p className="text-sm text-gray-500 mt-1">Les 5 dernières alertes nécessitant votre attention</p>
           </div>
           <div className="space-y-3">
             {data.alertes.slice(0, 5).map((alerte) => (
@@ -363,12 +386,12 @@ export default function DGDashboard() {
       <Card>
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Historique des Approbations</h2>
-          <p className="text-sm text-gray-600 mt-1">Les 10 dernières approbations effectuées</p>
+          <p className="text-sm text-gray-500 mt-1">Les 10 dernières approbations effectuées</p>
         </div>
 
         {data.historique?.length > 0 ? (
           <div className="overflow-x-auto">
-            <Table>
+            <Table striped>
               <TableHeader>
                 <TableHead>Numéro Engagement</TableHead>
                 <TableHead>Objet</TableHead>
@@ -379,7 +402,7 @@ export default function DGDashboard() {
               </TableHeader>
               <TableBody>
                 {data.historique.map((hist) => (
-                  <TableRow key={hist.id}>
+                  <TableRow key={hist.id} hover>
                     <TableCell>
                       <span className="font-semibold text-primary-600">{hist.engagement_numero}</span>
                     </TableCell>

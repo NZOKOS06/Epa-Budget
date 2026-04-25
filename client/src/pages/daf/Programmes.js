@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, LineChart } from '../../components/ui';
+import { Card, Button, LoadingSpinner, EmptyState, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, LineChart, PageHeader, FilterBar, ProgressBar, StatusBadge } from '../../components/ui';
 
 export default function DAFProgrammes() {
   const [programmes, setProgrammes] = useState([]);
@@ -96,138 +96,176 @@ export default function DAFProgrammes() {
     return <LoadingSpinner message="Chargement des programmes..." />;
   }
 
+  // KPIs globaux
+  const totalBudget = filteredProgrammes.reduce((s, p) => s + (p.budget_initial || 0), 0);
+  const totalEngage = filteredProgrammes.reduce((s, p) => s + (p.montant_engage || 0), 0);
+  const totalPaye = filteredProgrammes.reduce((s, p) => s + (p.montant_paye || 0), 0);
+  const tauxGlobal = totalBudget > 0 ? Math.round((totalPaye / totalBudget) * 100) : 0;
+
   return (
     <div className="space-y-6">
-      {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Budget-Programme</h1>
-          <p className="text-gray-600 mt-1">Gestion et suivi des programmes budgétaires de l'EPA</p>
-        </div>
-        <Button onClick={() => setShowModalCreate(true)} className="flex items-center">
+      {/* Header premium avec KPIs */}
+      <PageHeader
+        title="Budget-Programme"
+        subtitle="Gestion et suivi des programmes budgétaires de l'EPA"
+        kpis={[
+          {
+            label: 'Budget Total',
+            value: formatMontant(totalBudget),
+            sub: `${filteredProgrammes.length} programmes`,
+            icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ),
+          },
+          {
+            label: 'Montant Engagé',
+            value: formatMontant(totalEngage),
+            sub: `${totalBudget > 0 ? Math.round((totalEngage / totalBudget) * 100) : 0}% du budget`,
+            icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            ),
+          },
+          {
+            label: 'Montant Payé',
+            value: formatMontant(totalPaye),
+            sub: `${totalBudget > 0 ? Math.round((totalPaye / totalBudget) * 100) : 0}% du budget`,
+            icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            ),
+          },
+          {
+            label: "Taux d'Exécution Global",
+            value: `${tauxGlobal}%`,
+            sub: 'Objectif 100%',
+            icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            ),
+          },
+        ]}
+      >
+        <Button onClick={() => setShowModalCreate(true)} className="flex items-center shadow-md hover:shadow-lg">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Créer un Programme
         </Button>
-      </div>
+      </PageHeader>
 
-      {/* Filtres - Selon documentation */}
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Année
-            </label>
-            <select
-              value={annee}
-              onChange={(e) => setAnnee(parseInt(e.target.value))}
-              className="input-field"
-            >
-              {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Recherche
-            </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Code ou libellé..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      {/* Filtres */}
+      <FilterBar>
+        <div className="flex items-center space-x-2">
+          <label className="text-sm font-medium text-gray-600">Année</label>
+          <select
+            value={annee}
+            onChange={(e) => setAnnee(parseInt(e.target.value))}
+            className="input-field py-1.5 w-32"
+          >
+            {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
-      </Card>
+        <div className="flex items-center space-x-2 flex-1 min-w-[200px]">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            className="input-field py-1.5 border-0 bg-transparent focus:ring-0 w-full"
+            placeholder="Rechercher par code ou libellé..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </FilterBar>
 
-      {/* Liste des Programmes - Selon documentation */}
+      {/* Liste des Programmes */}
       <Card>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Liste des Programmes</h2>
-          <p className="text-sm text-gray-600 mt-1">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-gray-900">Liste des Programmes</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
             {filteredProgrammes.length} programme(s) de l'année {annee}
           </p>
         </div>
 
         {filteredProgrammes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableHead>Code</TableHead>
-                <TableHead>Libellé</TableHead>
-                <TableHead className="text-right">Budget Initial</TableHead>
-                <TableHead className="text-right">Montant Engagé</TableHead>
-                <TableHead className="text-right">Montant Payé</TableHead>
-                <TableHead>Taux d'Exécution</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableHeader>
-              <TableBody>
-                {filteredProgrammes.map((prog) => {
-                  const montantEngage = prog.montant_engage || 0;
-                  const montantPaye = prog.montant_paye || 0;
-                  const tauxExecution = calculateTauxExecution(montantPaye, prog.budget_initial);
-                  
-                  return (
-                    <TableRow key={prog.id}>
-                      <TableCell>
-                        <span className="font-semibold text-primary-600">{prog.code}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-gray-900">{prog.libelle}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-semibold text-gray-900">
-                          {formatMontant(prog.budget_initial || 0)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-semibold text-gray-900">
-                          {formatMontant(montantEngage)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-semibold text-gray-900">
-                          {formatMontant(montantPaye)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${
-                                tauxExecution >= 80 ? 'bg-success-500' :
-                                tauxExecution >= 50 ? 'bg-warning-500' :
-                                'bg-danger-500'
-                              }`}
-                              style={{ width: `${Math.min(tauxExecution, 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-gray-600 w-12">{tauxExecution}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          onClick={() => handleVoirDetails(prog)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          Voir détails
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <Table striped>
+            <TableHeader>
+              <TableHead>Code</TableHead>
+              <TableHead>Libellé</TableHead>
+              <TableHead className="text-right">Budget Initial</TableHead>
+              <TableHead className="text-right">Montant Engagé</TableHead>
+              <TableHead className="text-right">Montant Payé</TableHead>
+              <TableHead className="w-48">Taux d'Exécution</TableHead>
+              <TableHead className="text-right">Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableHeader>
+            <TableBody>
+              {filteredProgrammes.map((prog) => {
+                const montantEngage = prog.montant_engage || 0;
+                const montantPaye = prog.montant_paye || 0;
+                const tauxExecution = calculateTauxExecution(montantPaye, prog.budget_initial);
+
+                return (
+                  <TableRow key={prog.id} onClick={() => handleVoirDetails(prog)} hover>
+                    <TableCell>
+                      <span className="font-semibold text-primary-700">{prog.code}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-gray-900">{prog.libelle}</span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-medium text-gray-900">
+                        {formatMontant(prog.budget_initial || 0)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-medium text-gray-900">
+                        {formatMontant(montantEngage)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-medium text-gray-900">
+                        {formatMontant(montantPaye)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <ProgressBar value={tauxExecution} size="sm" showLabel />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <StatusBadge value={tauxExecution} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        onClick={(e) => { e.stopPropagation(); handleVoirDetails(prog); }}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Voir
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         ) : (
           <EmptyState
             title="Aucun programme"
             description="Aucun programme trouvé pour les critères sélectionnés"
+            action={
+              <Button variant="outline" onClick={() => { setSearchTerm(''); setAnnee(new Date().getFullYear()); }}>
+                Réinitialiser les filtres
+              </Button>
+            }
           />
         )}
       </Card>
@@ -238,7 +276,7 @@ export default function DAFProgrammes() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Détails du Programme</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-500 mt-1">
                 {selectedProgramme.code} - {selectedProgramme.libelle}
               </p>
             </div>
@@ -336,7 +374,7 @@ export default function DAFProgrammes() {
                   </TableHeader>
                   <TableBody>
                     {selectedProgramme.engagements.map((eng) => (
-                      <TableRow key={eng.id}>
+                      <TableRow key={eng.id} hover>
                         <TableCell>
                           <span className="font-semibold text-primary-600">{eng.numero}</span>
                         </TableCell>

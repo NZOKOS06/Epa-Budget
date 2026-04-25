@@ -56,7 +56,7 @@
   }
 
   .sidebar-item {
-    @apply flex items-center px-3 py-2 text-sm font-medium text-gray-400 rounded-md transition-colors duration-150 hover:bg-slate-800 hover:text-white cursor-pointer;
+    @apply flex items-center px-3 py-2 text-sm font-medium text-gray-400 rounded-md transition-all duration-200 ease-out hover:bg-slate-800 hover:text-white hover:pl-4 cursor-pointer;
   }
 
   .sidebar-item-active {
@@ -80,11 +80,23 @@
   }
 
   .table-professionnelle tbody tr {
-    @apply hover:bg-gray-50 transition-colors duration-100;
+    @apply transition-colors duration-150 ease-out;
+  }
+
+  .table-professionnelle tbody tr:hover {
+    @apply bg-primary-50;
   }
 
   .table-professionnelle tbody tr + tr {
     @apply border-t border-gray-100;
+  }
+
+  .table-striped tbody tr:nth-child(even) {
+    @apply bg-gray-50/50;
+  }
+
+  .table-striped tbody tr:nth-child(even):hover {
+    @apply bg-primary-50;
   }
 
   .custom-scrollbar::-webkit-scrollbar {

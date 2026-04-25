@@ -142,7 +142,7 @@ export default function ComptableCloture() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Clôture Comptable</h1>
-          <p className="text-gray-600 mt-1">Gestion de la clôture des comptes annuels</p>
+          <p className="text-gray-500 mt-1">Gestion de la clôture des comptes annuels</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
@@ -211,7 +211,7 @@ export default function ComptableCloture() {
                 const taux = calcTaux(cpPaye, cpInit);
 
                 return (
-                  <TableRow key={idx}>
+                  <TableRow key={idx} hover>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold text-gray-900">{chap.chapitre_code}</span>
@@ -240,7 +240,7 @@ export default function ComptableCloture() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Processus de Clôture</h2>
-          <p className="text-sm text-gray-600 mt-1">Suivi des étapes de génération et certification</p>
+          <p className="text-sm text-gray-500 mt-1">Suivi des étapes de génération et certification</p>
         </div>
 
         <div className="space-y-4">
@@ -269,7 +269,7 @@ export default function ComptableCloture() {
                   <div>
                     <p className="font-semibold text-gray-900">{etape.nom}</p>
                     {etape.date && (
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         Terminé le {format(new Date(etape.date), 'dd/MM/yyyy HH:mm', { locale: fr })}
                       </p>
                     )}

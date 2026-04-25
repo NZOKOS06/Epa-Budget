@@ -175,7 +175,7 @@ export default function DAFModificatifs() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Modificatifs</h1>
-          <p className="text-gray-600 mt-1">Gestion des modificatifs budgétaires (&gt;10% d'une ligne)</p>
+          <p className="text-gray-500 mt-1">Gestion des modificatifs budgétaires (&gt;10% d'une ligne)</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,7 +189,7 @@ export default function DAFModificatifs() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Liste des Modificatifs</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {modificatifs.length} modificatif(s) enregistré(s)
           </p>
         </div>
@@ -213,7 +213,7 @@ export default function DAFModificatifs() {
                   const programmeDestination = programmes.find(p => p.id === mod.programme_destination_id);
                   
                   return (
-                    <TableRow key={mod.id}>
+                    <TableRow key={mod.id} hover>
                       <TableCell>
                         <span className="font-semibold text-primary-600">{mod.numero || `MOD-${mod.id}`}</span>
                       </TableCell>

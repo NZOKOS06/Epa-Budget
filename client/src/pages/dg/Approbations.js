@@ -221,7 +221,7 @@ export default function DGApprobations() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Approbations Stratégiques</h1>
-          <p className="text-gray-600 mt-1">Approbation ou refus des engagements validés par le comptable</p>
+          <p className="text-gray-500 mt-1">Approbation ou refus des engagements validés par le comptable</p>
         </div>
         {selected.length > 0 && (
           <Button onClick={handleApprouverBatch} variant="success">
@@ -308,7 +308,7 @@ export default function DGApprobations() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Liste des Engagements en Attente</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {filteredEngagements.length} engagement(s) en attente de validation
           </p>
         </div>
@@ -334,7 +334,7 @@ export default function DGApprobations() {
               </TableHeader>
               <TableBody>
                 {filteredEngagements.map((eng) => (
-                  <TableRow key={eng.id}>
+                  <TableRow key={eng.id} hover>
                     <TableCell>
                       <input
                         type="checkbox"
@@ -396,7 +396,7 @@ export default function DGApprobations() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Approbations Approuvées</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {filteredEngagementsApprouves.length} engagement(s) approuvé(s)
           </p>
         </div>
@@ -465,7 +465,7 @@ export default function DGApprobations() {
               </TableHeader>
               <TableBody>
                 {filteredEngagementsApprouves.map((eng) => (
-                  <TableRow key={eng.id}>
+                  <TableRow key={eng.id} hover>
                     <TableCell>
                       <span className="font-semibold text-primary-600">{eng.numero}</span>
                     </TableCell>

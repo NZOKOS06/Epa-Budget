@@ -46,6 +46,14 @@ import TutelleRapportsSectoriels from './pages/tutelle/RapportsSectoriels';
 import CCDBPisteAudit from './pages/ccdb/PisteAudit';
 import CCDBComptesAnnuels from './pages/ccdb/ComptesAnnuels';
 
+// Pages Admin
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminGestionEPA from './pages/admin/GestionEPA';
+import AdminGestionUtilisateurs from './pages/admin/GestionUtilisateurs';
+import AdminGestionRoles from './pages/admin/GestionRoles';
+import AdminConfiguration from './pages/admin/Configuration';
+import AdminJournalActivite from './pages/admin/JournalActivite';
+
 // Fonction utilitaire pour obtenir la route par défaut selon le rôle
 const getDefaultPathForRole = (role) => {
   const rolePath = {
@@ -56,6 +64,7 @@ const getDefaultPathForRole = (role) => {
     SERVICE: '/services/programmes',
     TUTELLE: '/tutelle/consolidation',
     CCDB: '/ccdb/piste-audit',
+    ADMIN: '/admin/dashboard',
   };
   return rolePath[role] || '/login';
 };
@@ -316,6 +325,56 @@ function App() {
             element={
               <ProtectedRoute>
                 <CCDBComptesAnnuels />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Routes Admin */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/epa"
+            element={
+              <ProtectedRoute>
+                <AdminGestionEPA />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/utilisateurs"
+            element={
+              <ProtectedRoute>
+                <AdminGestionUtilisateurs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/roles"
+            element={
+              <ProtectedRoute>
+                <AdminGestionRoles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/configuration"
+            element={
+              <ProtectedRoute>
+                <AdminConfiguration />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/journal"
+            element={
+              <ProtectedRoute>
+                <AdminJournalActivite />
               </ProtectedRoute>
             }
           />

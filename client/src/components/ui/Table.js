@@ -3,10 +3,10 @@ import React from 'react';
 /**
  * Composant Table professionnel réutilisable
  */
-export function Table({ children, className = '' }) {
+export function Table({ children, className = '', striped = true }) {
   return (
-    <div className={`overflow-x-auto ${className}`}>
-      <table className="table-professionnelle">{children}</table>
+    <div className={`overflow-x-auto rounded-lg border border-gray-200 shadow-sm ${className}`}>
+      <table className={`w-full text-sm ${striped ? 'table-striped' : ''}`}>{children}</table>
     </div>
   );
 }
@@ -32,10 +32,12 @@ export function TableBody({ children, className = '' }) {
 /**
  * Composant TableRow
  */
-export function TableRow({ children, className = '', onClick }) {
+export function TableRow({ children, className = '', onClick, hover = true }) {
   return (
     <tr
-      className={`${className} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`border-b border-gray-100 transition-colors duration-150 ${
+        hover && onClick ? 'hover:bg-primary-50 cursor-pointer' : hover ? 'hover:bg-gray-50' : ''
+      } ${className}`}
       onClick={onClick}
     >
       {children}

@@ -14,13 +14,13 @@ export function Button({
   type = 'button',
   ...props
 }) {
-  const baseClasses = 'font-medium rounded-md shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'font-medium rounded-md shadow-sm transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none';
 
   const variants = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
-    success: 'bg-success-600 text-white hover:bg-success-700 focus:ring-success-500',
-    danger: 'bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500',
-    outline: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:ring-primary-500',
+    primary: 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md hover:-translate-y-0.5 focus:ring-primary-500',
+    success: 'bg-success-600 text-white hover:bg-success-700 hover:shadow-md hover:-translate-y-0.5 focus:ring-success-500',
+    danger: 'bg-danger-600 text-white hover:bg-danger-700 hover:shadow-md hover:-translate-y-0.5 focus:ring-danger-500',
+    outline: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm focus:ring-primary-500',
     ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   };
 

@@ -85,7 +85,7 @@ export default function DAFRapportsInternes() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Rapports Internes</h1>
-          <p className="text-gray-600 mt-1">Génération de rapports mensuels d'exécution budgétaire</p>
+          <p className="text-gray-500 mt-1">Génération de rapports mensuels d'exécution budgétaire</p>
         </div>
         <Button onClick={() => setShowGenerateModal(true)}>
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +100,7 @@ export default function DAFRapportsInternes() {
         <Card>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Graphique d'Évolution</h2>
-            <p className="text-sm text-gray-600 mt-1">Évolution mensuelle des engagements - Les 12 derniers mois</p>
+            <p className="text-sm text-gray-500 mt-1">Évolution mensuelle des engagements - Les 12 derniers mois</p>
           </div>
           <LineChart
             data={graphiqueData.map(item => ({
@@ -118,7 +118,7 @@ export default function DAFRapportsInternes() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Liste des Rapports</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Rapports mensuels d'exécution budgétaire
           </p>
         </div>
@@ -141,7 +141,7 @@ export default function DAFRapportsInternes() {
                   const rowKey = rapport.id || rapport.mois || `${rapport.nb_engagements || 0}-${rapport.total_engage || 0}`;
                   
                   return (
-                    <TableRow key={rowKey}>
+                    <TableRow key={rowKey} hover>
                       <TableCell>
                         <span className="font-semibold text-gray-900">
                           {format(new Date(rapport.mois), 'MMMM yyyy', { locale: fr })}

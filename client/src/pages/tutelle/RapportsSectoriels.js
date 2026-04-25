@@ -61,7 +61,7 @@ export default function TutelleRapportsSectoriels() {
             </TableHead>
             <TableBody>
               {rapports.map((rapport) => (
-                <TableRow key={rapport.secteur}>
+                <TableRow key={rapport.secteur} hover>
                   <TableCell>{rapport.secteur}</TableCell>
                   <TableCell>{rapport.nb_epa}</TableCell>
                   <TableCell>{rapport.nb_engagements}</TableCell>

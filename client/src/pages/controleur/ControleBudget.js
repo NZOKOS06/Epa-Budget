@@ -153,7 +153,7 @@ export default function ControleurControleBudget() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Contrôle Budgétaire</h1>
-          <p className="text-gray-600 mt-1">Analyse détaillée des articles budgétaires et engagements</p>
+          <p className="text-gray-500 mt-1">Analyse détaillée des articles budgétaires et engagements</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button
@@ -257,7 +257,7 @@ export default function ControleurControleBudget() {
           <Card>
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Articles Budgétaires</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-500 mt-1">
                 {filteredArticles.length} article(s) affiché(s)
               </p>
             </div>
@@ -317,7 +317,7 @@ export default function ControleurControleBudget() {
           <Card>
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Engagements en Attente de Visa</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-500 mt-1">
                 {filteredEngagements.length} engagement(s) affiché(s)
               </p>
             </div>
@@ -393,7 +393,7 @@ export default function ControleurControleBudget() {
         <Card className="border-l-4 border-l-danger-500">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Alertes de Dérive Budgétaire</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               Risques de dépassement détectés
             </p>
           </div>

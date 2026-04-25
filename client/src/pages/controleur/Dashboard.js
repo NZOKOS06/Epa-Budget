@@ -100,7 +100,7 @@ export default function ControleurDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Tableau de Bord du Contrôleur</h1>
-          <p className="text-gray-600 mt-1">Vue d'ensemble des contrôles budgétaires et visas</p>
+          <p className="text-gray-500 mt-1">Vue d'ensemble des contrôles budgétaires et visas</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button>
@@ -148,7 +148,7 @@ export default function ControleurDashboard() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">File d'Attente Prioritaire</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Engagements en attente de visa (triés par montant décroissant)
           </p>
         </div>
@@ -211,7 +211,7 @@ export default function ControleurDashboard() {
         <Card className="border-l-4 border-l-danger-500">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Alertes de Dérive Budgétaire</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               Engagements présentant des risques de dépassement
             </p>
           </div>
@@ -252,7 +252,7 @@ export default function ControleurDashboard() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Évolution des Contrôles</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Derniers contrôles effectués (favorables vs défavorables)
           </p>
         </div>
@@ -271,7 +271,7 @@ export default function ControleurDashboard() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Journal des Contrôles Récents</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Les 10 derniers contrôles effectués
           </p>
         </div>
@@ -289,7 +289,7 @@ export default function ControleurDashboard() {
               </TableHeader>
               <TableBody>
                 {data.journal.slice(0, 10).map((controle) => (
-                  <TableRow key={controle.id}>
+                  <TableRow key={controle.id} hover>
                     <TableCell>
                       <span className="text-gray-600">
                         {format(new Date(controle.date_avis), 'dd/MM/yyyy HH:mm', { locale: fr })}

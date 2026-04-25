@@ -85,7 +85,7 @@ export default function ServicesReceptions() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Réceptions / Liquidations</h1>
-          <p className="text-gray-600 mt-1">Gestion des PV de réception et liquidation</p>
+          <p className="text-gray-500 mt-1">Gestion des PV de réception et liquidation</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +99,7 @@ export default function ServicesReceptions() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">PV de Réception</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {receptions.length} réception(s) enregistrée(s)
           </p>
         </div>
@@ -185,7 +185,7 @@ export default function ServicesReceptions() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">PV Réception #{selectedReception.pv_numero || `PV-${selectedReception.id}`}</h2>
-              <p className="text-sm text-gray-600 mt-1">Engagement: {selectedReception.engagement_numero}</p>
+              <p className="text-sm text-gray-500 mt-1">Engagement: {selectedReception.engagement_numero}</p>
             </div>
             <Button variant="outline" onClick={() => setSelectedReception(null)}>
               Fermer

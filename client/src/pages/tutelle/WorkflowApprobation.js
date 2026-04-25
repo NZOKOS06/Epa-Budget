@@ -82,7 +82,7 @@ export default function TutelleWorkflowApprobation() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Workflow Approbation</h1>
-          <p className="text-gray-600 mt-1">Budget 2026 - Validation tutelle</p>
+          <p className="text-gray-500 mt-1">Budget 2026 - Validation tutelle</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export default function TutelleWorkflowApprobation() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Budget 2026</h2>
-            <p className="text-sm text-gray-600 mt-1">Numéro: {budget.numero}</p>
+            <p className="text-sm text-gray-500 mt-1">Numéro: {budget.numero}</p>
           </div>
           <Badge variant={budget.statut === 'APPROUVE' ? 'success' : 'warning'}>
             {budget.statut || 'En attente'}

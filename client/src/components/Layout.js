@@ -117,6 +117,36 @@ const IconAudit = () => (
   </svg>
 );
 
+const IconBuilding = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+  </svg>
+);
+
+const IconUsers = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const IconShield = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const IconSettings = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+  </svg>
+);
+
+const IconActivityLog = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+  </svg>
+);
+
 const IconNotifications = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -184,6 +214,14 @@ const menuItemsByRole = {
     { text: 'Piste Audit', path: '/ccdb/piste-audit', icon: <IconAudit /> },
     { text: 'Comptes Annuels', path: '/ccdb/comptes-annuels', icon: <IconComptes /> },
   ],
+  ADMIN: [
+    { text: 'Tableau de Bord', path: '/admin/dashboard', icon: <IconDashboard /> },
+    { text: 'Gestion des EPA', path: '/admin/epa', icon: <IconBuilding /> },
+    { text: 'Utilisateurs', path: '/admin/utilisateurs', icon: <IconUsers /> },
+    { text: 'Rôles & Permissions', path: '/admin/roles', icon: <IconShield /> },
+    { text: 'Configuration', path: '/admin/configuration', icon: <IconSettings /> },
+    { text: "Journal d'Activité", path: '/admin/journal', icon: <IconActivityLog /> },
+  ],
 };
 
 export default function Layout({ children }) {
@@ -203,19 +241,23 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex flex-col w-64 bg-slate-900 text-white border-r border-slate-800">
+      <aside className="hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ease-in-out">
+        <div className={`flex flex-col w-64 text-white border-r shadow-xl ${isAdmin ? 'bg-indigo-950 border-indigo-900' : 'bg-slate-900 border-slate-800'}`}>
           {/* Logo */}
-          <div className="flex items-center h-16 px-5 border-b border-slate-800 bg-slate-950">
-            <div className="w-8 h-8 bg-primary-600 rounded flex items-center justify-center mr-3">
-              <span className="text-white font-bold text-sm">EB</span>
+          <div className={`flex items-center h-16 px-5 border-b ${isAdmin ? 'border-indigo-800 bg-indigo-900' : 'border-slate-800 bg-slate-950'}`}>
+            <div className={`w-8 h-8 rounded flex items-center justify-center mr-3 ${isAdmin ? 'bg-white/20' : 'bg-primary-600'}`}>
+              <span className="text-white font-bold text-sm">{isAdmin ? 'AD' : 'EB'}</span>
             </div>
             <div>
               <h1 className="text-sm font-semibold text-white leading-tight">EPA Budget</h1>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Gestion Budgétaire</p>
+              <p className={`text-[10px] uppercase tracking-wider ${isAdmin ? 'text-indigo-300' : 'text-slate-400'}`}>
+                {isAdmin ? 'Administration' : 'Gestion Budgétaire'}
+              </p>
             </div>
           </div>
 
@@ -223,20 +265,26 @@ export default function Layout({ children }) {
           <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const activeClass = isAdmin
+                ? 'bg-indigo-800 text-white'
+                : 'bg-slate-800 text-white';
+              const inactiveClass = isAdmin
+                ? 'text-indigo-300 hover:bg-indigo-800 hover:text-white hover:pl-4'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white hover:pl-4';
+              const iconActive = isAdmin ? 'text-indigo-300' : 'text-primary-400';
+              const iconInactive = isAdmin ? 'text-indigo-500 group-hover:text-white' : 'text-slate-500 group-hover:text-white';
               return (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-                    isActive
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ease-out ${
+                    isActive ? activeClass : inactiveClass
                   }`}
                 >
-                  <span className={`mr-3 ${isActive ? 'text-primary-400' : 'text-slate-500'}`}>{item.icon}</span>
+                  <span className={`mr-3 transition-transform duration-200 group-hover:translate-x-0.5 ${isActive ? iconActive : iconInactive}`}>{item.icon}</span>
                   <span className="flex-1 text-left">{item.text}</span>
                   {isActive && (
-                    <div className="w-1 h-1 bg-primary-400 rounded-full"></div>
+                    <div className={`w-1.5 h-1.5 rounded-full ${isAdmin ? 'bg-indigo-400' : 'bg-primary-400'}`}></div>
                   )}
                 </button>
               );
@@ -244,18 +292,23 @@ export default function Layout({ children }) {
           </nav>
 
           {/* User Info Footer */}
-          <div className="p-4 border-t border-slate-800">
+          <div className={`p-4 border-t ${isAdmin ? 'border-indigo-800' : 'border-slate-800'}`}>
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium text-xs">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-xs ${isAdmin ? 'bg-indigo-700' : 'bg-slate-700'}`}>
                 {user?.prenom?.[0]}{user?.nom?.[0]}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
                   {user?.prenom} {user?.nom}
                 </p>
-                <p className="text-xs text-slate-400 truncate">{user?.role_nom}</p>
+                <p className={`text-xs truncate ${isAdmin ? 'text-indigo-300' : 'text-slate-400'}`}>{user?.role_nom}</p>
               </div>
             </div>
+            {isAdmin && (
+              <div className="mt-2 px-2 py-1 bg-indigo-800/60 rounded-md">
+                <p className="text-[10px] text-indigo-300 text-center font-semibold tracking-widest uppercase">⚡ Super Admin</p>
+              </div>
+            )}
           </div>
         </div>
       </aside>
@@ -264,11 +317,11 @@ export default function Layout({ children }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={handleDrawerToggle}></div>
-          <div className="fixed inset-y-0 left-0 w-64 bg-slate-900 text-white border-r border-slate-800">
-            <div className="flex items-center justify-between h-16 px-5 border-b border-slate-800 bg-slate-950">
+          <div className={`fixed inset-y-0 left-0 w-64 text-white border-r ${isAdmin ? 'bg-indigo-950 border-indigo-900' : 'bg-slate-900 border-slate-800'}`}>
+            <div className={`flex items-center justify-between h-16 px-5 border-b ${isAdmin ? 'border-indigo-800 bg-indigo-900' : 'border-slate-800 bg-slate-950'}`}>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-primary-600 rounded flex items-center justify-center mr-3">
-                  <span className="text-white font-bold text-sm">EB</span>
+                <div className={`w-8 h-8 rounded flex items-center justify-center mr-3 ${isAdmin ? 'bg-white/20' : 'bg-primary-600'}`}>
+                  <span className="text-white font-bold text-sm">{isAdmin ? 'AD' : 'EB'}</span>
                 </div>
                 <span className="text-sm font-semibold">EPA Budget</span>
               </div>
@@ -289,13 +342,13 @@ export default function Layout({ children }) {
                       navigate(item.path);
                       setMobileOpen(false);
                     }}
-                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
+                    className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ease-out ${
                       isActive
                         ? 'bg-slate-800 text-white'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-white hover:pl-4'
                     }`}
                   >
-                    <span className={`mr-3 ${isActive ? 'text-primary-400' : 'text-slate-500'}`}>{item.icon}</span>
+                    <span className={`mr-3 transition-transform duration-200 group-hover:translate-x-0.5 ${isActive ? 'text-primary-400' : 'text-slate-500 group-hover:text-white'}`}>{item.icon}</span>
                     <span className="flex-1 text-left">{item.text}</span>
                   </button>
                 );

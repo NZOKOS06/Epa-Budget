@@ -72,7 +72,7 @@ export default function DGSessions() {
       {/* En-tête */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Sessions</h1>
-        <p className="text-gray-600 mt-1">Visualisation des sessions d'approbation mensuelles et e-voting</p>
+        <p className="text-gray-500 mt-1">Visualisation des sessions d'approbation mensuelles et e-voting</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -167,7 +167,7 @@ export default function DGSessions() {
                 </TableHeader>
                 <TableBody>
                   {selectedSession.engagements.map((eng) => (
-                    <TableRow key={eng.id}>
+                    <TableRow key={eng.id} hover>
                       <TableCell>
                         <span className="font-semibold text-primary-600">{eng.numero}</span>
                       </TableCell>

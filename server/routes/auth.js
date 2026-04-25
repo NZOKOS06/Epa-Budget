@@ -9,29 +9,39 @@ const router = express.Router();
 // Connexion
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email?.trim();
+    const password = req.body.password;
+    console.log(`[AUTH] Tentative: ${email} | PWD_LEN: ${password?.length}`);
+    if (password && password.length > 0) {
+      console.log(`[AUTH] PWD_CHARS: ${password.charCodeAt(0)} ... ${password.charCodeAt(password.length - 1)}`);
+    }
 
     const result = await pool.query(
       `SELECT u.*, r.code as role_code, r.nom as role_nom 
        FROM utilisateurs u 
        JOIN roles r ON u.role_id = r.id 
-       WHERE u.email = $1 AND u.statut = 'actif'`,
+       WHERE LOWER(u.email) = LOWER($1) AND u.statut = 'actif'`,
       [email]
     );
 
     if (result.rows.length === 0) {
+      console.log(`[AUTH] Échec: Utilisateur non trouvé ou inactif (${email})`);
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
 
     const user = result.rows[0];
+    console.log(`[AUTH] Utilisateur trouvé: ${user.email} (Rôle: ${user.role_code})`);
     
     // Compatible avec les deux noms de colonnes (ancien: password_hash, nouveau: mot_de_passe)
     const hashedPassword = user.mot_de_passe || user.password_hash;
     const isValid = await bcrypt.compare(password, hashedPassword);
 
     if (!isValid) {
+      console.log(`[AUTH] Échec: Mot de passe incorrect pour ${email}`);
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
+
+    console.log(`[AUTH] Connexion réussie pour ${email}`);
 
     // JWT avec durée limitée à 8h (exigence cahier des charges)
     const token = jwt.sign(

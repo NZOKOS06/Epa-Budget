@@ -113,7 +113,7 @@ export default function DGRapportsTutelle() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Rapports Tutelle</h1>
-          <p className="text-gray-600 mt-1">Gestion et transmission des rapports à l'autorité de tutelle</p>
+          <p className="text-gray-500 mt-1">Gestion et transmission des rapports à l'autorité de tutelle</p>
         </div>
         <Button>
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,7 +216,7 @@ export default function DGRapportsTutelle() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Liste des Rapports</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {filteredRapports.length} rapport(s) affiché(s)
           </p>
         </div>
@@ -233,7 +233,7 @@ export default function DGRapportsTutelle() {
               </TableHeader>
               <TableBody>
                 {filteredRapports.map((rapport) => (
-                  <TableRow key={rapport.id}>
+                  <TableRow key={rapport.id} hover>
                     <TableCell>
                       <span className="font-medium text-gray-900">
                         {getTypeLabel(rapport.type)}

@@ -156,7 +156,7 @@ export default function ControleurChecklist() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Checklist Visa Contrôleur</h1>
-          <p className="text-gray-600 mt-1">Engagement #{engagement.numero}</p>
+          <p className="text-gray-500 mt-1">Engagement #{engagement.numero}</p>
         </div>
         <Button variant="outline" onClick={() => navigate('/controleur/file-visas')}>
           Retour à la file
@@ -198,7 +198,7 @@ export default function ControleurChecklist() {
           <Card>
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Points de Contrôle Obligatoires</h2>
-              <p className="text-sm text-gray-600 mt-1">Vérifiez chaque point avant de valider l'engagement</p>
+              <p className="text-sm text-gray-500 mt-1">Vérifiez chaque point avant de valider l'engagement</p>
             </div>
 
             <div className="space-y-3">

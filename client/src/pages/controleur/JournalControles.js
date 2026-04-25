@@ -161,7 +161,7 @@ export default function ControleurJournalControles() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Journal des Contrôles</h1>
-          <p className="text-gray-600 mt-1">Historique complet des visas et contrôles effectués</p>
+          <p className="text-gray-500 mt-1">Historique complet des visas et contrôles effectués</p>
         </div>
         <Button onClick={handleExport}>
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,7 +250,7 @@ export default function ControleurJournalControles() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Évolution des Contrôles</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Derniers 30 jours - Visas favorables vs défavorables
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function ControleurJournalControles() {
       <Card>
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Historique des contrôles</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {controlesFiltres.length} contrôle(s) trouvé(s)
           </p>
         </div>
@@ -288,7 +288,7 @@ export default function ControleurJournalControles() {
               </TableHeader>
               <TableBody>
                 {controlesFiltres.map((controle) => (
-                  <TableRow key={controle.id}>
+                  <TableRow key={controle.id} hover>
                     <TableCell>
                       <div>
                         {(() => {
