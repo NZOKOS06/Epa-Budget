@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS epa (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS budgets (
     id SERIAL PRIMARY KEY,
-    annee INTEGER UNIQUE NOT NULL, -- RG-18: un seul budget actif par année
+    annee INTEGER NOT NULL, -- RG-18: un seul budget actif par année par EPA
+    UNIQUE (annee, epa_id),
     montant_previsionnel DECIMAL(15,2) NOT NULL CHECK (montant_previsionnel > 0),
     statut VARCHAR(20) NOT NULL DEFAULT 'preparation' 
         CHECK (statut IN ('preparation', 'approuve', 'actif', 'cloture')),

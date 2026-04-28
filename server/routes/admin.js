@@ -47,7 +47,8 @@ router.get('/dashboard', async (req, res) => {
         epa.id, epa.code, epa.nom, epa.secteur,
         COALESCE(epa.statut, 'actif') as statut,
         b.annee, b.statut as budget_statut,
-        COALESCE(SUM(cb.ae_alloue), 0) as budget_total,
+        COALESCE(b.montant_previsionnel, 0) as budget_total,
+        COALESCE(SUM(cb.ae_alloue), 0) as budget_alloue,
         COALESCE(SUM(cb.ae_engage), 0) as engage_total,
         COALESCE(SUM(cb.cp_paye), 0) as paye_total,
         COUNT(DISTINCT u.id) as nb_utilisateurs
@@ -55,7 +56,7 @@ router.get('/dashboard', async (req, res) => {
       LEFT JOIN budgets b ON b.epa_id = epa.id AND b.statut = 'actif'
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b.id
       LEFT JOIN utilisateurs u ON u.epa_id = epa.id AND u.statut = 'actif'
-      GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, b.annee, b.statut
+      GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, b.annee, b.statut, b.montant_previsionnel
       ORDER BY epa.nom
     `);
 
@@ -104,13 +105,14 @@ router.get('/epa', async (req, res) => {
         COUNT(DISTINCT b.id) as nb_budgets,
         b_actif.annee as budget_annee_actif,
         b_actif.statut as budget_statut_actif,
-        COALESCE(SUM(cb.ae_alloue), 0) as budget_total
+        COALESCE(b_actif.montant_previsionnel, 0) as budget_total,
+        COALESCE(SUM(cb.ae_alloue), 0) as budget_alloue
       FROM epa
       LEFT JOIN utilisateurs u ON u.epa_id = epa.id AND u.statut = 'actif'
       LEFT JOIN budgets b ON b.epa_id = epa.id
       LEFT JOIN budgets b_actif ON b_actif.epa_id = epa.id AND b_actif.statut = 'actif'
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b_actif.id
-      GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, epa.created_at, b_actif.annee, b_actif.statut
+      GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, epa.created_at, b_actif.annee, b_actif.statut, b_actif.montant_previsionnel
       ORDER BY epa.nom
     `);
     res.json(result.rows);
@@ -162,48 +164,99 @@ router.get('/epa/:id', async (req, res) => {
 });
 
 router.post('/epa', auditLogger('epa'), async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { code, nom, secteur, description } = req.body;
+    const { code, nom, secteur, annee, budget_actif } = req.body;
 
     if (!code || !nom) {
       return res.status(400).json({ message: 'Le code et le nom sont obligatoires' });
     }
 
-    const existing = await pool.query('SELECT id FROM epa WHERE code = $1', [code]);
+    await client.query('BEGIN');
+
+    const existing = await client.query('SELECT id FROM epa WHERE code = $1', [code]);
     if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(409).json({ message: `Le code EPA "${code}" existe déjà` });
     }
 
-    const result = await pool.query(
+    const result = await client.query(
       `INSERT INTO epa (code, nom, secteur, statut)
        VALUES ($1, $2, $3, 'actif')
        RETURNING *`,
       [code.toUpperCase(), nom, secteur || null]
     );
 
+    const epaId = result.rows[0].id;
+
+    // Création du budget initial si fourni
+    if (annee && budget_actif) {
+      await client.query(
+        `INSERT INTO budgets (annee, montant_previsionnel, statut, epa_id, created_by)
+         VALUES ($1, $2, 'actif', $3, $4)`,
+        [annee, budget_actif, epaId, req.user.id]
+      );
+    }
+
+    await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  } finally {
+    client.release();
   }
 });
 
 router.put('/epa/:id', auditLogger('epa'), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { nom, secteur, description } = req.body;
+    const { nom, secteur, annee, budget_actif } = req.body;
 
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const result = await client.query(
       `UPDATE epa SET nom = $1, secteur = $2 WHERE id = $3 RETURNING *`,
       [nom, secteur || null, id]
     );
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'EPA non trouvée' });
     }
 
+    if (annee && budget_actif) {
+      // Vérifier si un budget existe déjà pour cette année et cet EPA
+      const existingBudget = await client.query(
+        'SELECT id FROM budgets WHERE annee = $1 AND epa_id = $2',
+        [annee, id]
+      );
+
+      if (existingBudget.rows.length > 0) {
+        // Mettre à jour le budget existant
+        await client.query(
+          `UPDATE budgets SET montant_previsionnel = $1, updated_at = CURRENT_TIMESTAMP 
+           WHERE id = $2`,
+          [budget_actif, existingBudget.rows[0].id]
+        );
+      } else {
+        // Créer un nouveau budget
+        await client.query(
+          `INSERT INTO budgets (annee, montant_previsionnel, statut, epa_id, created_by)
+           VALUES ($1, $2, 'actif', $3, $4)`,
+          [annee, budget_actif, id, req.user.id]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  } finally {
+    client.release();
   }
 });
 

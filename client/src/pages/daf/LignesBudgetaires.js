@@ -142,8 +142,8 @@ export default function DAFLignesBudgetaires() {
   // Calculer masse salariale (simplifié - devrait être calculé depuis les données)
   const masseSalariale = lignesFiltrees
     .filter(l => l.code_nature?.startsWith('60')) // Codes nature 60 = personnel
-    .reduce((sum, l) => sum + (l.ae_initial || 0), 0);
-  const budgetTotal = lignesFiltrees.reduce((sum, l) => sum + (l.ae_initial || 0), 0);
+    .reduce((sum, l) => sum + (parseFloat(l.ae_initial) || 0), 0);
+  const budgetTotal = lignesFiltrees.reduce((sum, l) => sum + (parseFloat(l.ae_initial) || 0), 0);
   const pourcentageMasseSalariale = budgetTotal > 0 ? (masseSalariale / budgetTotal) * 100 : 0;
 
   return (

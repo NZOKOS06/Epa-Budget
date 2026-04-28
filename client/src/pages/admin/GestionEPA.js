@@ -15,7 +15,14 @@ export default function GestionEPA() {
   const [search, setSearch] = useState('');
   const [filterStatut, setFilterStatut] = useState('');
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ code: '', nom: '', secteur: '', description: '' });
+  const [form, setForm] = useState({ 
+    code: '', 
+    nom: '', 
+    secteur: '', 
+    description: '', 
+    annee: new Date().getFullYear(), 
+    budget_actif: '' 
+  });
   const [toast, setToast] = useState(null);
 
   const loadEPAs = useCallback(async () => {
@@ -39,7 +46,21 @@ export default function GestionEPA() {
 
   const handleOpenForm = (item = null) => {
     setEditItem(item);
-    setForm(item ? { code: item.code, nom: item.nom, secteur: item.secteur || '', description: '' } : { code: '', nom: '', secteur: '', description: '' });
+    setForm(item ? { 
+      code: item.code, 
+      nom: item.nom, 
+      secteur: item.secteur || '', 
+      description: '',
+      annee: item.budget_annee_actif || new Date().getFullYear(),
+      budget_actif: item.budget_total || ''
+    } : { 
+      code: '', 
+      nom: '', 
+      secteur: '', 
+      description: '',
+      annee: new Date().getFullYear(),
+      budget_actif: ''
+    });
     setShowForm(true);
   };
 
@@ -48,11 +69,16 @@ export default function GestionEPA() {
     if (!form.code.trim() || !form.nom.trim()) return;
     try {
       setSaving(true);
+      const dataToSave = { 
+        ...form,
+        annee: parseInt(form.annee),
+        budget_actif: parseFloat(form.budget_actif)
+      };
       if (editItem) {
-        await api.put(`/admin/epa/${editItem.id}`, form);
+        await api.put(`/admin/epa/${editItem.id}`, dataToSave);
         showToast(`EPA "${form.nom}" modifiée avec succès`);
       } else {
-        await api.post('/admin/epa', form);
+        await api.post('/admin/epa', dataToSave);
         showToast(`EPA "${form.nom}" créée avec succès`);
       }
       setShowForm(false);
@@ -96,7 +122,7 @@ export default function GestionEPA() {
     return matchSearch && matchStatut;
   });
 
-  const fmt = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(v || 0);
+  const fmt = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(parseFloat(v) || 0);
 
   return (
     <div className="space-y-5">
@@ -263,6 +289,29 @@ export default function GestionEPA() {
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Année budgétaire *</label>
+                  <input
+                    type="number"
+                    value={form.annee}
+                    onChange={e => setForm(f => ({ ...f, annee: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Budget Initial (XAF) *</label>
+                  <input
+                    type="number"
+                    value={form.budget_actif}
+                    onChange={e => setForm(f => ({ ...f, budget_actif: e.target.value }))}
+                    placeholder="ex: 1000000000"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    required
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Nom officiel *</label>
                 <input
@@ -315,21 +364,41 @@ export default function GestionEPA() {
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Utilisateurs rattachés ({detailData.utilisateurs?.length || 0})</h3>
-                    <div className="space-y-1.5">
-                      {detailData.utilisateurs?.map(u => (
-                        <div key={u.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
-                          <div>
-                            <span className="text-sm font-medium text-gray-800">{u.prenom} {u.nom}</span>
-                            <span className="text-xs text-gray-400 ml-2">{u.email}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2">Utilisateurs rattachés ({detailData.utilisateurs?.length || 0})</h3>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2">
+                        {detailData.utilisateurs?.map(u => (
+                          <div key={u.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <div>
+                              <p className="text-sm font-medium text-gray-800 leading-tight">{u.prenom} {u.nom}</p>
+                              <p className="text-[10px] text-gray-400">{u.email}</p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${u.statut === 'actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                              {u.role_code}
+                            </span>
                           </div>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${u.statut === 'actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                            {u.role_code}
-                          </span>
-                        </div>
-                      ))}
-                      {detailData.utilisateurs?.length === 0 && <p className="text-sm text-gray-400 text-center py-3">Aucun utilisateur rattaché</p>}
+                        ))}
+                        {detailData.utilisateurs?.length === 0 && <p className="text-xs text-gray-400 text-center py-3 italic">Aucun utilisateur</p>}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2">Historique Budgétaire</h3>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2">
+                        {detailData.budgets?.map(b => (
+                          <div key={b.id} className={`flex items-center justify-between px-3 py-2 rounded-lg border ${b.statut === 'actif' ? 'bg-indigo-50 border-indigo-100' : 'bg-gray-50 border-gray-100'}`}>
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{b.annee}</p>
+                              <p className="text-[10px] text-gray-500">{fmt(b.montant_previsionnel)}</p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${b.statut === 'actif' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                              {b.statut?.toUpperCase()}
+                            </span>
+                          </div>
+                        ))}
+                        {detailData.budgets?.length === 0 && <p className="text-xs text-gray-400 text-center py-3 italic">Aucun budget défini</p>}
+                      </div>
                     </div>
                   </div>
                 </>

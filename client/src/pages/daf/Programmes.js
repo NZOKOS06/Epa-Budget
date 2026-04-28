@@ -97,9 +97,9 @@ export default function DAFProgrammes() {
   }
 
   // KPIs globaux
-  const totalBudget = filteredProgrammes.reduce((s, p) => s + (p.budget_initial || 0), 0);
-  const totalEngage = filteredProgrammes.reduce((s, p) => s + (p.montant_engage || 0), 0);
-  const totalPaye = filteredProgrammes.reduce((s, p) => s + (p.montant_paye || 0), 0);
+  const totalBudget = filteredProgrammes.reduce((s, p) => s + (parseFloat(p.budget_initial) || 0), 0);
+  const totalEngage = filteredProgrammes.reduce((s, p) => s + (parseFloat(p.montant_engage) || 0), 0);
+  const totalPaye = filteredProgrammes.reduce((s, p) => s + (parseFloat(p.montant_paye) || 0), 0);
   const tauxGlobal = totalBudget > 0 ? Math.round((totalPaye / totalBudget) * 100) : 0;
 
   return (

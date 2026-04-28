@@ -15,6 +15,13 @@ const ACTION_ICONS = {
   view: '👁',
 };
 
+const ACTION_LABELS = {
+  create: 'Création',
+  update: 'Modification',
+  delete: 'Suppression',
+  view: 'Consultation',
+};
+
 const RESSOURCE_LABELS = {
   connexion: '🔐 Connexion',
   engagements: '📄 Engagement',
@@ -113,7 +120,7 @@ export default function JournalActivite() {
             <div key={s.action} className="bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <div>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${ACTION_COLORS[s.action] || 'bg-gray-100 text-gray-600'}`}>
-                  {ACTION_ICONS[s.action]} {s.action}
+                  {ACTION_ICONS[s.action]} {ACTION_LABELS[s.action] || s.action}
                 </span>
                 <p className="text-xs text-gray-400 mt-0.5">30 derniers jours</p>
               </div>
@@ -247,7 +254,7 @@ export default function JournalActivite() {
                   </td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${ACTION_COLORS[entry.action] || 'bg-gray-100 text-gray-600'}`}>
-                      {ACTION_ICONS[entry.action]} {entry.action}
+                      {ACTION_ICONS[entry.action]} {ACTION_LABELS[entry.action] || entry.action}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-xs text-gray-700">
