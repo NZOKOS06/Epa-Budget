@@ -221,7 +221,7 @@ export default function ControleurFileVisas() {
                         <div className="flex flex-col">
                           <span className="font-bold text-primary-700">{visa.numero}</span>
                           <span className="text-xs text-gray-500">
-                            {format(new Date(visa.created_at), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                            {format(new Date(visa.date_creation), 'dd/MM/yyyy HH:mm', { locale: fr })}
                           </span>
                         </div>
                       </TableCell>
@@ -279,3 +279,4 @@ export default function ControleurFileVisas() {
     </div>
   );
 }
+

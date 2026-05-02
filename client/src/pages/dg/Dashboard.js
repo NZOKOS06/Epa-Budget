@@ -307,7 +307,7 @@ export default function DGDashboard() {
                       <span className="text-gray-600">
                         {eng.regularite_comptable_date 
                           ? format(new Date(eng.regularite_comptable_date), 'dd/MM/yyyy', { locale: fr })
-                          : format(new Date(eng.created_at), 'dd/MM/yyyy', { locale: fr })
+                          : format(new Date(eng.date_creation), 'dd/MM/yyyy', { locale: fr })
                         }
                       </span>
                     </TableCell>
@@ -365,7 +365,7 @@ export default function DGDashboard() {
                   </div>
                   <p className="text-sm text-gray-700 mb-2">{alerte.message}</p>
                   <p className="text-xs text-gray-500">
-                    {format(new Date(alerte.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                    {format(new Date(alerte.date_creation), 'dd/MM/yyyy à HH:mm', { locale: fr })}
                   </p>
                 </div>
                 <Button
@@ -528,3 +528,4 @@ export default function DGDashboard() {
     </div>
   );
 }
+

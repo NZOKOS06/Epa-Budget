@@ -189,7 +189,7 @@ export default function DAFEngagements() {
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
           service: eng.service_nom || eng.demandeur_nom || 'N/A',
-          date: eng.created_at,
+          date: eng.date_creation,
           pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
@@ -207,7 +207,7 @@ export default function DAFEngagements() {
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
           service: eng.service_nom || eng.demandeur_nom || 'N/A',
-          date: eng.created_at,
+          date: eng.date_creation,
           pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
@@ -225,7 +225,7 @@ export default function DAFEngagements() {
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
           service: eng.service_nom || eng.demandeur_nom || 'N/A',
-          date: eng.created_at,
+          date: eng.date_creation,
           pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
@@ -243,7 +243,7 @@ export default function DAFEngagements() {
           montant: eng.montant,
           programme: eng.programme_libelle || 'N/A',
           service: eng.service_nom || eng.demandeur_nom || 'N/A',
-          date: eng.created_at,
+          date: eng.date_creation,
           pieces: Number(eng.pieces_count || eng.pieces_jointes?.length || 0),
           priorite: eng.montant > 5000000 ? 'URGENT' : null,
         })),
@@ -314,7 +314,7 @@ export default function DAFEngagements() {
                   <div className="space-y-1 text-xs text-gray-500">
                     <div>Programme: {item.programme}</div>
                     <div>Service: {item.service}</div>
-                    <div>{format(new Date(item.date), 'dd/MM/yyyy', { locale: fr })}</div>
+                    <div>{item.date ? format(new Date(item.date), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
                   </div>
                   {item.pieces > 0 && (
                     <div className="mt-2 pt-2 border-t border-gray-100">
@@ -489,7 +489,7 @@ export default function DAFEngagements() {
                     <div>
                       <p className="text-sm text-gray-600">Date de création</p>
                       <p className="font-semibold text-gray-900">
-                        {format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        {selectedEngagement.date_creation ? format(new Date(selectedEngagement.date_creation), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                       </p>
                     </div>
                     <div>
@@ -521,7 +521,7 @@ export default function DAFEngagements() {
                       <div className="flex items-center space-x-2 mb-1">
                         <Badge variant="info">Créé</Badge>
                         <span className="text-sm text-gray-600">
-                          {format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                          {selectedEngagement.date_creation ? format(new Date(selectedEngagement.date_creation), 'dd/MM/yyyy à HH:mm', { locale: fr }) : 'N/A'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-700">Création par le service demandeur</p>

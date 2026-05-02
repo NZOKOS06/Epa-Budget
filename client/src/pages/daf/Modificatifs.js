@@ -240,7 +240,7 @@ export default function DAFModificatifs() {
                       </TableCell>
                       <TableCell>
                         <span className="text-gray-600">
-                          {format(new Date(mod.created_at), 'dd/MM/yyyy', { locale: fr })}
+                          {format(new Date(mod.date_creation), 'dd/MM/yyyy', { locale: fr })}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -472,3 +472,4 @@ export default function DAFModificatifs() {
     </div>
   );
 }
+

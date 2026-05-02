@@ -250,7 +250,7 @@ export default function DGRapportsTutelle() {
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600">
-                        {format(new Date(rapport.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        {format(new Date(rapport.date_creation), 'dd/MM/yyyy', { locale: fr })}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -360,3 +360,4 @@ export default function DGRapportsTutelle() {
     </div>
   );
 }
+

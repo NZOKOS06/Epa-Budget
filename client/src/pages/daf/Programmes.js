@@ -397,7 +397,7 @@ export default function DAFProgrammes() {
                         </TableCell>
                         <TableCell>
                           <span className="text-gray-600">
-                            {format(new Date(eng.created_at), 'dd/MM/yyyy', { locale: fr })}
+                            {format(new Date(eng.date_creation), 'dd/MM/yyyy', { locale: fr })}
                           </span>
                         </TableCell>
                       </TableRow>
@@ -473,3 +473,4 @@ export default function DAFProgrammes() {
     </div>
   );
 }
+

@@ -122,7 +122,7 @@ export default function CCDBPisteAudit() {
                     <TableCell>{formatMontant(eng.montant)}</TableCell>
                     <TableCell>{eng.statut}</TableCell>
                     <TableCell>
-                      {format(new Date(eng.created_at), 'dd/MM/yyyy', { locale: fr })}
+                      {format(new Date(eng.date_creation), 'dd/MM/yyyy', { locale: fr })}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -134,4 +134,5 @@ export default function CCDBPisteAudit() {
     </div>
   );
 }
+
 

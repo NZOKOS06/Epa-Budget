@@ -361,7 +361,7 @@ export default function DGApprobations() {
                       <span className="text-gray-600">
                         {eng.regularite_comptable_date 
                           ? format(new Date(eng.regularite_comptable_date), 'dd/MM/yyyy', { locale: fr })
-                          : format(new Date(eng.created_at), 'dd/MM/yyyy', { locale: fr })
+                          : (eng.date_creation ? format(new Date(eng.date_creation), 'dd/MM/yyyy', { locale: fr }) : 'N/A')
                         }
                       </span>
                     </TableCell>
@@ -626,7 +626,7 @@ export default function DGApprobations() {
                     <div>
                       <p className="text-sm text-gray-600">Date de création</p>
                       <p className="font-semibold text-gray-900">
-                        {format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        {selectedEngagement.date_creation ? format(new Date(selectedEngagement.date_creation), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                       </p>
                     </div>
                     <div>
@@ -659,7 +659,7 @@ export default function DGApprobations() {
                       <div className="flex items-center space-x-2 mb-1">
                         <Badge variant="success">Créé</Badge>
                         <span className="text-sm text-gray-600">
-                          {format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                          {selectedEngagement.date_creation ? format(new Date(selectedEngagement.date_creation), 'dd/MM/yyyy à HH:mm', { locale: fr }) : 'N/A'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-700">Création par le service demandeur</p>

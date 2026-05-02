@@ -114,7 +114,7 @@ export default function ComptableControleRegularite() {
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600">
-                        {format(new Date(liq.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        {format(new Date(liq.date_creation), 'dd/MM/yyyy', { locale: fr })}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -258,3 +258,4 @@ export default function ComptableControleRegularite() {
     </div>
   );
 }
+

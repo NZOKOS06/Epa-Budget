@@ -62,7 +62,7 @@ export default function CCDBComptesAnnuels() {
                   <TableCell>{compte.periode}</TableCell>
                   <TableCell>{compte.statut}</TableCell>
                   <TableCell>
-                    {format(new Date(compte.created_at), 'dd/MM/yyyy', { locale: fr })}
+                    {format(new Date(compte.date_creation), 'dd/MM/yyyy', { locale: fr })}
                   </TableCell>
                 </TableRow>
               ))}
@@ -73,4 +73,5 @@ export default function CCDBComptesAnnuels() {
     </div>
   );
 }
+
 
