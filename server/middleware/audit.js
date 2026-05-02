@@ -40,7 +40,7 @@ const auditLogger = (ressource) => {
 
           await pool.query(
             `INSERT INTO journal_audit 
-             (action, ressource, ressource_id, ancienne_valeur, nouvelle_valeur, ip_adresse, id_utilisateur)
+             (action, ressource, id_ressource, ancienne_valeur, nouvelle_valeur, adresse_ip, id_utilisateur)
              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
               action,

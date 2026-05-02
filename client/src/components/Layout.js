@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/auth';
+import api from '../services/api';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { io } from 'socket.io-client';
 
 // Icônes fonctionnelles par rôle
 const IconDashboard = () => (
@@ -229,8 +233,85 @@ export default function Layout({ children }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const user = authService.getCurrentUser();
+  const user = useMemo(() => authService.getCurrentUser(), []);
   const menuItems = menuItemsByRole[user?.role] || [];
+
+  const [notifications, setNotifications] = useState([]);
+  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  const notifRef = useRef(null);
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    fetchNotifications();
+
+    // Connexion Socket.IO pour notifications temps reel
+    // Base sur user.id pour eviter les reconnect loops.
+    if (!socketRef.current) {
+      const socket = io('http://localhost:5001', {
+        transports: ['websocket'],
+        upgrade: false
+      });
+      socketRef.current = socket;
+    }
+
+    const socket = socketRef.current;
+    socket.emit('subscribe', user.id);
+
+    const onNotification = (newNotif) => {
+      setNotifications((prev) => [{
+        ...newNotif,
+        id: `new-${Date.now()}`,
+        lue: false,
+        created_at: new Date().toISOString()
+      }, ...prev]);
+
+      if (Notification.permission === 'granted') {
+        new Notification(newNotif.titre, { body: newNotif.message });
+      }
+    };
+
+    const onConnectError = (err) => {
+      console.warn('Socket connection error, retrying in websocket mode...', err);
+    };
+
+    socket.on('notification', onNotification);
+    socket.on('connect_error', onConnectError);
+
+    return () => {
+      if (!socketRef.current) return;
+      socketRef.current.off('notification', onNotification);
+      socketRef.current.off('connect_error', onConnectError);
+    };
+  }, [user?.id]);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get('/notifications');
+      setNotifications(response.data || []);
+    } catch (error) {
+      console.error('Erreur notifications:', error);
+    }
+  };
+
+  const markRead = async (id) => {
+    try {
+      await api.put(`/notifications/${id}/lire`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, lue: true } : n));
+    } catch (error) {
+      console.error('Erreur lecture notification:', error);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await api.put('/notifications/tout-lire');
+      setNotifications(prev => prev.map(n => ({ ...n, lue: true })));
+    } catch (error) {
+      console.error('Erreur lecture toutes notifications:', error);
+    }
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -377,10 +458,79 @@ export default function Layout({ children }) {
 
             <div className="flex items-center space-x-2">
               {/* Notifications */}
-              <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                <IconNotifications />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger-500 rounded-full"></span>
-              </button>
+              <div className="relative" ref={notifRef}>
+                <button 
+                  onClick={() => setNotifMenuOpen(!notifMenuOpen)}
+                  className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <IconNotifications />
+                  {notifications.some(n => !n.lue) && (
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-danger-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white animate-pulse">
+                      {notifications.filter(n => !n.lue).length}
+                    </span>
+                  )}
+                </button>
+
+                {notifMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setNotifMenuOpen(false)}></div>
+                    <div className="absolute right-0 mt-1.5 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-20 animate-fade-in origin-top-right">
+                      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                        <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
+                        {notifications.some(n => !n.lue) && (
+                          <button 
+                            onClick={markAllRead}
+                            className="text-[11px] font-semibold text-primary-600 hover:text-primary-800 transition-colors"
+                          >
+                            Tout marquer comme lu
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => (
+                            <div 
+                              key={notif.id}
+                              onClick={() => {
+                                if (!notif.lue) markRead(notif.id);
+                                if (notif.lien) navigate(notif.lien);
+                                setNotifMenuOpen(false);
+                              }}
+                              className={`px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors flex items-start space-x-3 ${!notif.lue ? 'bg-indigo-50/50 hover:bg-indigo-50' : 'hover:bg-gray-50'}`}
+                            >
+                              <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${!notif.lue ? 'bg-primary-600' : 'bg-transparent'}`}></div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm leading-tight ${!notif.lue ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+                                  {notif.titre}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{notif.message}</p>
+                                <p className="text-[10px] text-gray-400 mt-1.5 flex items-center uppercase tracking-wider">
+                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: fr })}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center">
+                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
+                              <IconNotifications />
+                            </div>
+                            <p className="text-sm text-gray-500">Aucune notification</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-center">
+                        <button className="text-[11px] font-bold text-gray-500 hover:text-gray-700">Voir tout l'historique</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* User Menu */}
               <div className="relative">

@@ -23,11 +23,11 @@ router.get('/file-visas', async (req, res) => {
         u.nom || ' ' || u.prenom as demandeur_nom,
         cb.libelle as programme_libelle
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       WHERE e.statut = 'en_attente_cb'
-      ORDER BY e.created_at ASC
+      ORDER BY e.date_creation ASC
     `);
 
     res.json(result.rows);
@@ -51,7 +51,7 @@ router.get('/engagements/:id', async (req, res) => {
         u.nom || ' ' || u.prenom as demandeur_nom,
         cb.libelle as programme_libelle
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       WHERE e.id = $1
@@ -63,7 +63,7 @@ router.get('/engagements/:id', async (req, res) => {
 
     // Pièces jointes
     const piecesResult = await pool.query(
-      'SELECT * FROM pieces_jointes WHERE engagement_id = $1',
+      'SELECT * FROM pieces_jointes WHERE id_engagement = $1',
       [id]
     );
 
@@ -97,15 +97,15 @@ router.get('/engagements/:id', async (req, res) => {
 router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
   try {
     const { id, pieceId } = req.params;
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2 AND e.id_epa = $3`,
       [pieceId, id, epa_id]
     );
 
@@ -134,15 +134,15 @@ router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
 router.get('/engagements/:id/pieces/:pieceId/download', async (req, res) => {
   try {
     const { id, pieceId } = req.params;
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2 AND e.id_epa = $3`,
       [pieceId, id, epa_id]
     );
 
@@ -245,7 +245,7 @@ router.get('/alertes-derive', async (req, res) => {
           ELSE 'Alerte'
         END as type_alerte
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       WHERE e.statut = 'en_attente_cb'
         AND (e.montant > ab.ae_disponible OR ab.ae_disponible < (ab.ae_initial * 0.1))
       ORDER BY e.montant DESC

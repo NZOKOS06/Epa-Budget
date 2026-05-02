@@ -54,6 +54,9 @@ import AdminGestionRoles from './pages/admin/GestionRoles';
 import AdminConfiguration from './pages/admin/Configuration';
 import AdminJournalActivite from './pages/admin/JournalActivite';
 
+// Page de Redirection Engagement
+import EngagementRedirect from './pages/EngagementRedirect';
+
 // Fonction utilitaire pour obtenir la route par défaut selon le rôle
 const getDefaultPathForRole = (role) => {
   const rolePath = {
@@ -375,6 +378,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminJournalActivite />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Route de Redirection Engagement */}
+          <Route
+            path="/engagements/:id"
+            element={
+              <ProtectedRoute>
+                <EngagementRedirect />
               </ProtectedRoute>
             }
           />

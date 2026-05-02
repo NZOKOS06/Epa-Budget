@@ -33,7 +33,7 @@ const upload = multer({ storage });
 // ============================================================
 router.get('/programmes', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
@@ -46,7 +46,7 @@ router.get('/programmes', async (req, res) => {
         b.annee, b.statut as budget_statut
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
-      WHERE b.epa_id = $1 AND b.annee = EXTRACT(YEAR FROM CURRENT_DATE)
+      WHERE b.id_epa = $1 AND b.annee = EXTRACT(YEAR FROM CURRENT_DATE)
       ORDER BY cb.code
     `, [epa_id]);
 
@@ -62,7 +62,7 @@ router.get('/programmes', async (req, res) => {
 router.get('/articles-budgetaires', async (req, res) => {
   try {
     const userResult = await pool.query(
-      'SELECT epa_id, direction_id FROM utilisateurs WHERE id = $1', [req.user.id]
+      'SELECT id_epa as epa_id, id_direction as direction_id FROM utilisateurs WHERE id = $1', [req.user.id]
     );
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     
@@ -75,12 +75,12 @@ router.get('/articles-budgetaires', async (req, res) => {
       FROM articles_budgetaires ab
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN budgets b ON cb.id_budget = b.id
-      WHERE b.epa_id = $1 AND b.statut = 'actif'
+      WHERE b.id_epa = $1 AND b.statut = 'actif'
     `;
     const params = [epa_id];
 
     if (direction_id) {
-      query += ' AND (ab.direction_id = $2 OR ab.direction_id IS NULL)';
+      query += ' AND (ab.id_direction = $2 OR ab.id_direction IS NULL)';
       params.push(direction_id);
     }
 
@@ -107,13 +107,13 @@ router.get('/demandes-engagements', async (req, res) => {
         (
           SELECT COUNT(*)
           FROM pieces_jointes pj
-          WHERE pj.engagement_id = e.id
+          WHERE pj.id_engagement = e.id
         ) as pieces_count
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       WHERE e.id_demandeur = $1
-      ORDER BY e.created_at DESC
+      ORDER BY e.date_creation DESC
     `, [req.user.id]);
 
     res.json(result.rows);
@@ -128,11 +128,11 @@ router.get('/demandes-engagements', async (req, res) => {
 router.post('/demandes-engagements', auditLogger('engagements'), upload.array('pieces_jointes', 10), async (req, res) => {
   try {
     const { ligne_budgetaire_id, montant, objet } = req.body;
-    const id_article_budgetaire = ligne_budgetaire_id;
+    const id_article = ligne_budgetaire_id;
 
     // Récupérer les infos utilisateur
     const userResult = await pool.query(
-      'SELECT epa_id, direction_id FROM utilisateurs WHERE id = $1', [req.user.id]
+      'SELECT id_epa as epa_id, id_direction as direction_id FROM utilisateurs WHERE id = $1', [req.user.id]
     );
     const { epa_id, direction_id } = userResult.rows[0];
 
@@ -143,7 +143,7 @@ router.post('/demandes-engagements', auditLogger('engagements'), upload.array('p
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN budgets b ON cb.id_budget = b.id
       WHERE ab.id = $1
-    `, [id_article_budgetaire]);
+    `, [id_article]);
 
     if (articleResult.rows.length === 0) {
       return res.status(400).json({ message: 'Article budgétaire non trouvé' });
@@ -160,7 +160,7 @@ router.post('/demandes-engagements', auditLogger('engagements'), upload.array('p
     }
 
     // RG-17: Vérifier que l'article appartient à la direction du CS
-    if (direction_id && article.direction_id && article.direction_id !== direction_id) {
+    if (direction_id && article.id_direction && article.id_direction !== direction_id) {
       return res.status(403).json({
         message: 'Vous ne pouvez initier des demandes que sur les articles budgétaires de votre propre direction (RG-17)'
       });
@@ -179,10 +179,10 @@ router.post('/demandes-engagements', auditLogger('engagements'), upload.array('p
     // Créer l'engagement au statut brouillon
     const engagementResult = await pool.query(
       `INSERT INTO engagements 
-       (numero, objet, montant, statut, id_article_budgetaire, id_demandeur, epa_id)
+       (numero, objet, montant, statut, id_article, id_demandeur, id_epa)
        VALUES ($1, $2, $3, 'brouillon', $4, $5, $6)
        RETURNING *`,
-      [numero, objet, montant, id_article_budgetaire, req.user.id, epa_id]
+      [numero, objet, montant, id_article, req.user.id, epa_id]
     );
 
     const engagement = engagementResult.rows[0];
@@ -192,7 +192,7 @@ router.post('/demandes-engagements', auditLogger('engagements'), upload.array('p
       for (const file of req.files) {
         await pool.query(
           `INSERT INTO pieces_jointes 
-           (engagement_id, nom_fichier, chemin_fichier, type_fichier, taille, uploaded_by)
+           (id_engagement, nom_fichier, chemin_fichier, type_fichier, taille, uploade_par)
            VALUES ($1, $2, $3, $4, $5, $6)`,
           [engagement.id, file.originalname, file.path, (file.mimetype || '').slice(0, 50), file.size, req.user.id]
         );
@@ -221,35 +221,35 @@ router.get('/demandes-engagements/:id', async (req, res) => {
         ab.code as article_code, ab.libelle as article_libelle,
         cb.id as programme_id, cb.libelle as chapitre_libelle, cb.code as chapitre_code,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'soumise_daf'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'soumise_daf'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as soumission_daf_date,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_cb'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'en_attente_cb'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as transmission_controleur_date,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_dg'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'en_attente_dg'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as transmission_dg_date,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'valide'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'valide'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as validation_dg_date
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       WHERE e.id = $1 AND e.id_demandeur = $2
     `, [id, req.user.id]);
@@ -260,7 +260,7 @@ router.get('/demandes-engagements/:id', async (req, res) => {
 
     // Récupérer les pièces jointes
     const pieces = await pool.query(
-      'SELECT * FROM pieces_jointes WHERE engagement_id = $1',
+      'SELECT * FROM pieces_jointes WHERE id_engagement = $1',
       [id]
     );
 
@@ -279,8 +279,8 @@ router.get('/demandes-engagements/:id/pieces/:pieceId/view', async (req, res) =>
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.id_demandeur = $3`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2 AND e.id_demandeur = $3`,
       [pieceId, id, req.user.id]
     );
 
@@ -312,8 +312,8 @@ router.get('/demandes-engagements/:id/pieces/:pieceId/download', async (req, res
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.id_demandeur = $3`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2 AND e.id_demandeur = $3`,
       [pieceId, id, req.user.id]
     );
 
@@ -355,7 +355,7 @@ router.delete('/demandes-engagements/:id', auditLogger('engagements'), async (re
     }
 
     // Supprimer les pièces jointes d'abord (contrainte FK)
-    await pool.query('DELETE FROM pieces_jointes WHERE engagement_id = $1', [id]);
+    await pool.query('DELETE FROM pieces_jointes WHERE id_engagement = $1', [id]);
     await pool.query('DELETE FROM engagements WHERE id = $1', [id]);
 
     res.json({ message: 'Demande supprimée avec succès' });
@@ -397,13 +397,13 @@ router.get('/receptions', async (req, res) => {
         e.montant as engagement_montant,
         cb.code as programme_code,
         cb.libelle as programme_libelle,
-        COALESCE(l.created_at, l.updated_at) as date_reception
+        COALESCE(l.date_creation, l.date_modification) as date_reception
       FROM liquidations l
       JOIN engagements e ON l.id_engagement = e.id
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       WHERE e.id_demandeur = $1
-      ORDER BY l.created_at DESC
+      ORDER BY l.date_creation DESC
     `, [req.user.id]);
 
     res.json(result.rows);
@@ -417,7 +417,7 @@ router.get('/receptions', async (req, res) => {
 // ============================================================
 router.get('/indicateurs', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     const result = await pool.query(`
@@ -432,8 +432,8 @@ router.get('/indicateurs', async (req, res) => {
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
       LEFT JOIN articles_budgetaires ab ON ab.id_chapitre = cb.id
-      LEFT JOIN engagements e ON e.id_article_budgetaire = ab.id
-      WHERE b.epa_id = $1 AND b.annee = EXTRACT(YEAR FROM CURRENT_DATE)
+      LEFT JOIN engagements e ON e.id_article = ab.id
+      WHERE b.id_epa = $1 AND b.annee = EXTRACT(YEAR FROM CURRENT_DATE)
       GROUP BY cb.id, cb.code, cb.libelle
       ORDER BY cb.code
     `, [epa_id]);
@@ -456,7 +456,7 @@ router.get('/engagements-receptionnables', async (req, res) => {
       WHERE e.id_demandeur = $1
         AND e.statut = 'valide'
         AND l.id IS NULL
-      ORDER BY e.created_at DESC
+      ORDER BY e.date_creation DESC
     `, [req.user.id]);
 
     res.json(result.rows);
@@ -507,9 +507,9 @@ router.post('/engagements/:id/reception', auditLogger('liquidations'), async (re
         montant_liquide, 
         statut, 
         id_engagement,
-        created_at
+        date_creation
       ) VALUES ($1, $2, 'en_attente', $3, $4)
-      RETURNING id, montant_facture, montant_liquide, statut, created_at
+      RETURNING id, montant_facture, montant_liquide, statut, date_creation
     `, [
       engagement.montant,
       engagement.montant,
@@ -556,9 +556,9 @@ router.post('/receptions/:id/service-fait', auditLogger('liquidations'), async (
     // (en attente de validation comptable officielle)
     const updateResult = await pool.query(`
       UPDATE liquidations
-      SET statut = 'validee', updated_at = NOW()
+      SET statut = 'validee', date_modification = NOW()
       WHERE id = $1
-      RETURNING id, statut, montant_facture, montant_liquide, updated_at
+      RETURNING id, statut, montant_facture, montant_liquide, date_modification
     `, [id]);
 
     res.json({

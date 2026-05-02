@@ -5,6 +5,7 @@ const { auditLogger } = require('../middleware/audit');
 const { changeStatutEngagement } = require('../services/workflow');
 const path = require('path');
 const fs = require('fs');
+const { generatePDF } = require('../services/exportService');
 
 const router = express.Router();
 
@@ -28,9 +29,9 @@ router.get('/engagements/:id', async (req, res) => {
         u.nom || ' ' || u.prenom as service_nom,
         ac.type_avis, ac.commentaire as avis_commentaire
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
-      LEFT JOIN epa ON e.epa_id = epa.id
+      LEFT JOIN epa ON e.id_epa = epa.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       LEFT JOIN avis_controle ac ON ac.id_engagement = e.id AND ac.type_avis = 'favorable'
       WHERE e.id = $1
@@ -41,7 +42,7 @@ router.get('/engagements/:id', async (req, res) => {
     }
 
     const piecesResult = await pool.query(
-      'SELECT id, nom_fichier, chemin_fichier, type_fichier, taille FROM pieces_jointes WHERE engagement_id = $1',
+      'SELECT id, nom_fichier, chemin_fichier, type_fichier, taille FROM pieces_jointes WHERE id_engagement = $1',
       [id]
     );
 
@@ -63,8 +64,8 @@ router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2`,
       [pieceId, id]
     );
 
@@ -96,8 +97,8 @@ router.get('/engagements/:id/pieces/:pieceId/download', async (req, res) => {
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2`,
       [pieceId, id]
     );
 
@@ -133,13 +134,13 @@ router.get('/dashboard', async (req, res) => {
         u.nom || ' ' || u.prenom as service_nom,
         ac.type_avis, ac.commentaire as avis_commentaire
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
-      LEFT JOIN epa ON e.epa_id = epa.id
+      LEFT JOIN epa ON e.id_epa = epa.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       LEFT JOIN avis_controle ac ON ac.id_engagement = e.id AND ac.type_avis = 'favorable'
       WHERE e.statut = 'en_attente_dg'
-      ORDER BY e.created_at ASC
+      ORDER BY e.date_creation ASC
       LIMIT 50
     `);
 
@@ -151,21 +152,21 @@ router.get('/dashboard', async (req, res) => {
       FROM engagements
       WHERE statut = 'valide'
         AND id_validateur_dg IS NOT NULL
-        AND updated_at >= DATE_TRUNC('month', CURRENT_TIMESTAMP)
-        AND epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
+        AND date_modification >= DATE_TRUNC('month', CURRENT_TIMESTAMP)
+        AND id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
     `, [req.user.id]);
 
     // 3. Évolution Mensuelle (12 derniers mois)
     const evolutionResult = await pool.query(`
       SELECT 
-        DATE_TRUNC('month', updated_at) as mois,
+        DATE_TRUNC('month', date_modification) as mois,
         COALESCE(SUM(montant), 0) as total_montant,
         COUNT(*) as nb_engagements
       FROM engagements
       WHERE statut = 'valide'
-        AND updated_at >= CURRENT_DATE - INTERVAL '12 months'
-        AND epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
-      GROUP BY DATE_TRUNC('month', updated_at)
+        AND date_modification >= CURRENT_DATE - INTERVAL '12 months'
+        AND id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
+      GROUP BY DATE_TRUNC('month', date_modification)
       ORDER BY mois ASC
     `, [req.user.id]);
 
@@ -179,8 +180,8 @@ router.get('/dashboard', async (req, res) => {
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
       LEFT JOIN articles_budgetaires ab ON ab.id_chapitre = cb.id
-      LEFT JOIN engagements e ON e.id_article_budgetaire = ab.id
-      WHERE b.epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
+      LEFT JOIN engagements e ON e.id_article = ab.id
+      WHERE b.id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
         AND b.statut = 'actif'
       GROUP BY cb.id, cb.code, cb.libelle, cb.ae_alloue
       ORDER BY cb.code
@@ -194,21 +195,21 @@ router.get('/dashboard', async (req, res) => {
         SUM(montant) FILTER (WHERE statut = 'valide') as montant_valide_total,
         COUNT(*) FILTER (WHERE statut = 'rejete') as rejetes_total
       FROM engagements
-      WHERE epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
+      WHERE id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
     `, [req.user.id]);
 
     // 6. Alertes
     const alertesResult = await pool.query(
       `SELECT * FROM alertes 
        WHERE destine_a = 'DG' AND lue = false 
-       ORDER BY created_at DESC LIMIT 5`
+       ORDER BY date_creation DESC LIMIT 5`
     );
 
     // 7. Historique des approbations (dernières 10 approuvées)
     const historiqueResult = await pool.query(`
       SELECT 
         wh.id,
-        wh.engagement_id,
+        wh.id_engagement as engagement_id,
         e.numero as engagement_numero,
         e.objet,
         e.montant,
@@ -216,14 +217,14 @@ router.get('/dashboard', async (req, res) => {
         wh.ancien_statut,
         wh.nouveau_statut,
         wh.commentaire,
-        wh.created_at as date_approbation
+        wh.date_creation as date_approbation
       FROM workflow_history wh
-      JOIN engagements e ON wh.engagement_id = e.id
-      JOIN utilisateurs u ON wh.acteur_id = u.id
+      JOIN engagements e ON wh.id_engagement = e.id
+      JOIN utilisateurs u ON wh.id_acteur = u.id
       WHERE wh.nouveau_statut = 'valide'
-        AND wh.acteur_id = $1
-        AND e.epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
-      ORDER BY wh.created_at DESC
+        AND wh.id_acteur = $1
+        AND e.id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
+      ORDER BY wh.date_creation DESC
       LIMIT 10
     `, [req.user.id]);
 
@@ -258,13 +259,13 @@ router.get('/engagements-approuves', async (req, res) => {
         u.nom || ' ' || u.prenom as service_nom,
         ac.type_avis, ac.commentaire as avis_commentaire
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
-      LEFT JOIN epa ON e.epa_id = epa.id
+      LEFT JOIN epa ON e.id_epa = epa.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       LEFT JOIN avis_controle ac ON ac.id_engagement = e.id AND ac.type_avis = 'favorable'
       WHERE e.statut = 'valide'
-      ORDER BY e.updated_at DESC
+      ORDER BY e.date_modification DESC
       LIMIT 100
     `);
 
@@ -359,14 +360,14 @@ router.get('/sessions', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        DATE_TRUNC('month', updated_at) as mois,
+        DATE_TRUNC('month', date_modification) as mois,
         COUNT(*) as nb_engagements,
         SUM(montant) as total_montant
       FROM engagements
       WHERE statut = 'valide' 
         AND id_validateur_dg IS NOT NULL
-        AND epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
-      GROUP BY DATE_TRUNC('month', updated_at)
+        AND id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
+      GROUP BY DATE_TRUNC('month', date_modification)
       ORDER BY mois DESC
       LIMIT 12
     `, [req.user.id]);
@@ -385,9 +386,9 @@ router.get('/rapports-tutelle', async (req, res) => {
     const result = await pool.query(`
       SELECT r.*, epa.nom as epa_nom
       FROM rapports r
-      JOIN epa ON r.epa_id = epa.id
-      WHERE r.type IN ('RAP_TRIMESTRIEL', 'COMPTES_ANNUELS')
-      ORDER BY r.created_at DESC
+      JOIN epa ON r.id_epa = epa.id
+      WHERE r.type_rapport IN ('RAP_TRIMESTRIEL', 'COMPTES_ANNUELS')
+      ORDER BY r.date_creation DESC
     `);
     res.json(result.rows);
   } catch (error) {
@@ -400,7 +401,7 @@ router.post('/rapports/:id/transmettre', auditLogger('rapports'), async (req, re
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `UPDATE rapports SET statut = 'TRANSMIS', updated_at = CURRENT_TIMESTAMP 
+      `UPDATE rapports SET statut = 'TRANSMIS', date_modification = CURRENT_TIMESTAMP 
        WHERE id = $1 RETURNING *`,
       [id]
     );
@@ -414,8 +415,69 @@ router.post('/rapports/:id/transmettre', auditLogger('rapports'), async (req, re
 // Export PDF d'un rapport
 router.get('/rapports/:id/export', async (req, res) => {
   try {
-    // Simulation d'export PDF pour le moment
-    res.status(501).json({ message: 'Export PDF en cours de développement' });
+    const { id } = req.params;
+
+    // Récupérer les infos du rapport
+    const rapportResult = await pool.query(`
+      SELECT r.*, epa.nom as epa_nom
+      FROM rapports r
+      JOIN epa ON r.id_epa = epa.id
+      WHERE r.id = $1
+    `, [id]);
+
+    if (rapportResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Rapport non trouvé' });
+    }
+
+    const rapport = rapportResult.rows[0];
+
+    // Métadonnées du PDF
+    const metadata = {
+      'Rapport': rapport.type_rapport,
+      'EPA': rapport.epa_nom,
+      'Année': rapport.annee,
+      'Statut': rapport.statut,
+      'Généré le': new Date(rapport.date_creation).toLocaleString('fr-FR')
+    };
+
+    if (rapport.date_certification) metadata['Certifié le'] = new Date(rapport.date_certification).toLocaleString('fr-FR');
+    if (rapport.date_soumission_ccdb) metadata['Soumis à la CCDB le'] = new Date(rapport.date_soumission_ccdb).toLocaleString('fr-FR');
+
+    // Récupérer un résumé du budget pour l'année du rapport
+    const resumeBudgetResult = await pool.query(`
+      SELECT b.montant_previsionnel, b.statut,
+             COALESCE(SUM(cb.ae_alloue), 0) as total_alloue,
+             COALESCE(SUM(cb.ae_engage), 0) as total_engage,
+             COALESCE(SUM(cb.cp_paye), 0) as total_paye
+      FROM budgets b
+      LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b.id
+      WHERE b.id_epa = $1 AND b.annee = $2
+      GROUP BY b.id
+    `, [rapport.id_epa, rapport.annee]);
+
+    const headers = ['Montant Prévisionnel', 'AE Alloués', 'AE Engagés', 'CP Payés'];
+    let rows = [];
+    
+    if (resumeBudgetResult.rows.length > 0) {
+      const b = resumeBudgetResult.rows[0];
+      rows = [[
+        parseFloat(b.montant_previsionnel || 0).toLocaleString('fr-FR') + ' FCFA',
+        parseFloat(b.total_alloue || 0).toLocaleString('fr-FR') + ' FCFA',
+        parseFloat(b.total_engage || 0).toLocaleString('fr-FR') + ' FCFA',
+        parseFloat(b.total_paye || 0).toLocaleString('fr-FR') + ' FCFA'
+      ]];
+    }
+
+    const pdfBuffer = await generatePDF({
+      title: `Rapport ${rapport.type_rapport} - ${rapport.annee}`,
+      metadata,
+      headers,
+      rows
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${rapport.type_rapport}_${rapport.annee}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }

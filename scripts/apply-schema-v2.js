@@ -2,33 +2,18 @@ const pool = require('../server/config/database');
 const fs = require('fs');
 const path = require('path');
 
-async function applySchemaV2() {
+async function applyOfficialSchema() {
   try {
-    console.log('Application du schema_v2.sql...');
+    console.log('Application du schéma officiel init_complete.sql...');
     
-    // Lire le fichier schema_v2.sql
-    const schemaPath = path.join(__dirname, '../database/schema_v2.sql');
+    // Lire le fichier SQL officiel unique
+    const schemaPath = path.join(__dirname, '../database/init_complete.sql');
     const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
     
     // Exécuter le schéma
     await pool.query(schemaSQL);
     
-    console.log('Schema_v2.sql appliqué avec succès!');
-    
-    // Créer les tables manquantes pour la clôture
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS workflow_cloture (
-          id SERIAL PRIMARY KEY,
-          epa_id INTEGER REFERENCES epa(id),
-          annee INTEGER NOT NULL,
-          nom VARCHAR(255) NOT NULL,
-          statut VARCHAR(50) NOT NULL DEFAULT 'EN_ATTENTE',
-          date TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(epa_id, annee, id)
-      )
-    `);
+    console.log('init_complete.sql appliqué avec succès!');
 
     // Ajouter les colonnes manquantes à la table rapports
     await pool.query(`
@@ -43,13 +28,13 @@ async function applySchemaV2() {
     
     for (const epa of epaResult.rows) {
       const existingSteps = await pool.query(
-        'SELECT COUNT(*) as count FROM workflow_cloture WHERE epa_id = $1 AND annee = $2',
+        'SELECT COUNT(*) as count FROM workflow_cloture WHERE id_epa = $1 AND annee = $2',
         [epa.id, currentYear]
       );
 
       if (parseInt(existingSteps.rows[0].count) === 0) {
         await pool.query(`
-          INSERT INTO workflow_cloture (epa_id, annee, nom, statut) 
+          INSERT INTO workflow_cloture (id_epa, annee, nom, statut) 
           VALUES 
             ($1, $2, 'Génération Comptes Administratifs', 'EN_ATTENTE'),
             ($1, $2, 'Génération Comptes Financiers', 'EN_ATTENTE'),
@@ -86,18 +71,18 @@ async function applySchemaV2() {
     // Mettre à jour les engagements pour leur assigner un article budgétaire
     await pool.query(`
       UPDATE engagements 
-      SET id_article_budgetaire = subquery.article_id
+      SET id_article = subquery.article_id
       FROM (
         SELECT 
-          e.id as engagement_id,
+          e.id as id_engagement,
           ab.id as article_id
         FROM engagements e
         LEFT JOIN articles_budgetaires ab ON 1=1  -- Temporaire, à améliorer avec la vraie logique
-        WHERE e.id_article_budgetaire IS NULL
+        WHERE e.id_article IS NULL
         AND ab.id IS NOT NULL
         LIMIT 100
       ) AS subquery
-      WHERE engagements.id = subquery.engagement_id
+      WHERE engagements.id = subquery.id_engagement
     `);
 
     console.log('Migration terminée avec succès!');
@@ -108,4 +93,4 @@ async function applySchemaV2() {
   }
 }
 
-applySchemaV2();
+applyOfficialSchema();

@@ -10,21 +10,21 @@ async function checkDashboardQueries() {
       FROM engagements
       WHERE statut = 'valide'
         AND id_validateur_dg IS NOT NULL
-        AND updated_at >= DATE_TRUNC('month', CURRENT_TIMESTAMP)
-        AND epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
+        AND date_modification >= DATE_TRUNC('month', CURRENT_TIMESTAMP)
+        AND id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
     `, [userId]);
     console.log('Current Month Stats:', currentMonthStats.rows[0]);
 
     const evolutionResult = await pool.query(`
       SELECT 
-        DATE_TRUNC('month', updated_at) as mois,
+        DATE_TRUNC('month', date_modification) as mois,
         COALESCE(SUM(montant), 0) as total_montant,
         COUNT(*) as nb_engagements
       FROM engagements
       WHERE statut = 'valide'
-        AND updated_at >= CURRENT_DATE - INTERVAL '12 months'
-        AND epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
-      GROUP BY DATE_TRUNC('month', updated_at)
+        AND date_modification >= CURRENT_DATE - INTERVAL '12 months'
+        AND id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
+      GROUP BY DATE_TRUNC('month', date_modification)
       ORDER BY mois ASC
     `, [userId]);
     console.log('Evolution:', evolutionResult.rows);
@@ -38,8 +38,8 @@ async function checkDashboardQueries() {
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
       LEFT JOIN articles_budgetaires ab ON ab.id_chapitre = cb.id
-      LEFT JOIN engagements e ON e.id_article_budgetaire = ab.id
-      WHERE b.epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
+      LEFT JOIN engagements e ON e.id_article = ab.id
+      WHERE b.id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
         AND b.statut = 'actif'
       GROUP BY cb.id, cb.code, cb.libelle, cb.ae_alloue
       ORDER BY cb.code
@@ -49,7 +49,7 @@ async function checkDashboardQueries() {
     const historiqueResult = await pool.query(`
       SELECT 
         wh.id,
-        wh.engagement_id,
+        wh.id_engagement as engagement_id,
         e.numero as engagement_numero,
         e.objet,
         e.montant,
@@ -57,14 +57,14 @@ async function checkDashboardQueries() {
         wh.ancien_statut,
         wh.nouveau_statut,
         wh.commentaire,
-        wh.created_at as date_approbation
+        wh.date_creation as date_approbation
       FROM workflow_history wh
-      JOIN engagements e ON wh.engagement_id = e.id
-      JOIN utilisateurs u ON wh.acteur_id = u.id
+      JOIN engagements e ON wh.id_engagement = e.id
+      JOIN utilisateurs u ON wh.id_acteur = u.id
       WHERE wh.nouveau_statut = 'valide'
-        AND wh.acteur_id = $1
-        AND e.epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $1)
-      ORDER BY wh.created_at DESC
+        AND wh.id_acteur = $1
+        AND e.id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $1)
+      ORDER BY wh.date_creation DESC
       LIMIT 10
     `, [userId]);
     console.log('Historique approbations:', historiqueResult.rows);

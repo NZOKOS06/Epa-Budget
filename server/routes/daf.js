@@ -16,7 +16,7 @@ router.use(authorize('DAF'));
 // ============================================================
 router.get('/programmes', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
@@ -29,7 +29,7 @@ router.get('/programmes', async (req, res) => {
         b.annee, b.statut as budget_statut
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
-      WHERE b.epa_id = $1 AND b.annee = EXTRACT(YEAR FROM CURRENT_DATE)
+      WHERE b.id_epa = $1 AND b.annee = EXTRACT(YEAR FROM CURRENT_DATE)
       ORDER BY cb.code
     `, [epa_id]);
 
@@ -42,12 +42,12 @@ router.get('/programmes', async (req, res) => {
 // Récupérer le budget actif de l'année en cours
 router.get('/active-budget', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
     const result = await pool.query(
-      'SELECT * FROM budgets WHERE epa_id = $1 AND annee = EXTRACT(YEAR FROM CURRENT_DATE)',
+      'SELECT * FROM budgets WHERE id_epa = $1 AND annee = EXTRACT(YEAR FROM CURRENT_DATE)',
       [epa_id]
     );
 
@@ -62,12 +62,12 @@ router.post('/programmes', auditLogger('programmes'), async (req, res) => {
   try {
     const { code, libelle, budget_initial } = req.body;
     
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     // 1. Récupérer ou créer le budget pour l'année en cours
     let budgetResult = await pool.query(
-      'SELECT id FROM budgets WHERE epa_id = $1 AND annee = EXTRACT(YEAR FROM CURRENT_DATE)',
+      'SELECT id FROM budgets WHERE id_epa = $1 AND annee = EXTRACT(YEAR FROM CURRENT_DATE)',
       [epa_id]
     );
 
@@ -75,7 +75,7 @@ router.post('/programmes', auditLogger('programmes'), async (req, res) => {
     if (budgetResult.rows.length === 0) {
       // Créer un budget par défaut si absent
       const newBudget = await pool.query(
-        `INSERT INTO budgets (annee, montant_previsionnel, statut, epa_id, created_by)
+        `INSERT INTO budgets (annee, montant_previsionnel, statut, id_epa, cree_par)
          VALUES (EXTRACT(YEAR FROM CURRENT_DATE), $1, 'actif', $2, $3)
          RETURNING id`,
         [1000000000, epa_id, req.user.id]
@@ -147,7 +147,7 @@ router.get('/programmes/:id', async (req, res) => {
 router.get('/lignes-budgetaires', async (req, res) => {
   try {
     const { programme_id, annee } = req.query;
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
@@ -157,7 +157,7 @@ router.get('/lignes-budgetaires', async (req, res) => {
       FROM articles_budgetaires ab
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN budgets b ON cb.id_budget = b.id
-      WHERE b.epa_id = $1
+      WHERE b.id_epa = $1
     `;
     const params = [epa_id];
 
@@ -197,7 +197,7 @@ router.post('/lignes-budgetaires', auditLogger('articles'), async (req, res) => 
     }
 
     const result = await pool.query(
-      `INSERT INTO articles_budgetaires (code, libelle, ae_initial, cp_initial, id_chapitre, direction_id)
+      `INSERT INTO articles_budgetaires (code, libelle, ae_initial, cp_initial, id_chapitre, id_direction)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [code, libelle, ae_initial, cp_initial, id_chapitre, direction_id]
@@ -217,7 +217,7 @@ router.put('/lignes-budgetaires/:id', auditLogger('articles'), async (req, res) 
 
     const result = await pool.query(
       `UPDATE articles_budgetaires 
-       SET libelle = $1, ae_initial = $2, cp_initial = $3, direction_id = $4
+       SET libelle = $1, ae_initial = $2, cp_initial = $3, id_direction = $4
        WHERE id = $5
        RETURNING *`,
       [libelle, ae_initial, cp_initial, direction_id, id]
@@ -238,7 +238,7 @@ router.put('/lignes-budgetaires/:id', auditLogger('articles'), async (req, res) 
 // ============================================================
 router.get('/engagements', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
@@ -254,29 +254,29 @@ router.get('/engagements', async (req, res) => {
         u.nom || ' ' || u.prenom as demandeur_nom,
         u.nom || ' ' || u.prenom as service_nom,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'soumise_daf'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'soumise_daf'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as soumission_daf_date,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_cb'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'en_attente_cb'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as transmission_controleur_date,
         (
           SELECT COUNT(*)
           FROM pieces_jointes pj
-          WHERE pj.engagement_id = e.id
+          WHERE pj.id_engagement = e.id
         ) as pieces_count
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
-      WHERE e.epa_id = $1
+      WHERE e.id_epa = $1
     `;
     const params = [epa_id];
 
@@ -285,7 +285,7 @@ router.get('/engagements', async (req, res) => {
       params.push(statut);
     }
 
-    query += ' ORDER BY e.created_at DESC';
+    query += ' ORDER BY e.date_creation DESC';
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -312,21 +312,21 @@ router.get('/engagements/:id', async (req, res) => {
         u.nom || ' ' || u.prenom as demandeur_nom,
         u.nom || ' ' || u.prenom as service_nom,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'soumise_daf'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'soumise_daf'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as soumission_daf_date,
         (
-          SELECT wh.created_at
+          SELECT wh.date_creation
           FROM workflow_history wh
-          WHERE wh.engagement_id = e.id AND wh.nouveau_statut = 'en_attente_cb'
-          ORDER BY wh.created_at DESC
+          WHERE wh.id_engagement = e.id AND wh.nouveau_statut = 'en_attente_cb'
+          ORDER BY wh.date_creation DESC
           LIMIT 1
         ) as transmission_controleur_date
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       WHERE e.id = $1
@@ -337,7 +337,7 @@ router.get('/engagements/:id', async (req, res) => {
     }
 
     const piecesResult = await pool.query(
-      'SELECT * FROM pieces_jointes WHERE engagement_id = $1', [id]
+      'SELECT * FROM pieces_jointes WHERE id_engagement = $1', [id]
     );
 
     res.json({
@@ -355,15 +355,15 @@ router.get('/engagements/:id', async (req, res) => {
 router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
   try {
     const { id, pieceId } = req.params;
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2 AND e.id_epa = $3`,
       [pieceId, id, epa_id]
     );
 
@@ -392,15 +392,15 @@ router.get('/engagements/:id/pieces/:pieceId/view', async (req, res) => {
 router.get('/engagements/:id/pieces/:pieceId/download', async (req, res) => {
   try {
     const { id, pieceId } = req.params;
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     const epa_id = userResult.rows[0].epa_id;
 
     const pieceResult = await pool.query(
       `SELECT pj.*
        FROM pieces_jointes pj
-       JOIN engagements e ON e.id = pj.engagement_id
-       WHERE pj.id = $1 AND pj.engagement_id = $2 AND e.epa_id = $3`,
+       JOIN engagements e ON e.id = pj.id_engagement
+       WHERE pj.id = $1 AND pj.id_engagement = $2 AND e.id_epa = $3`,
       [pieceId, id, epa_id]
     );
 
@@ -427,12 +427,12 @@ router.post('/budgets', auditLogger('budgets'), async (req, res) => {
   try {
     const { annee, montant_previsionnel } = req.body;
     
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     // RG-18: Vérifier qu'il n'existe pas déjà un budget pour cette année
     const existingBudget = await pool.query(
-      'SELECT id FROM budgets WHERE annee = $1 AND epa_id = $2',
+      'SELECT id FROM budgets WHERE annee = $1 AND id_epa = $2',
       [annee, epa_id]
     );
     if (existingBudget.rows.length > 0) {
@@ -442,7 +442,7 @@ router.post('/budgets', auditLogger('budgets'), async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO budgets (annee, montant_previsionnel, statut, epa_id, created_by)
+      `INSERT INTO budgets (annee, montant_previsionnel, statut, id_epa, cree_par)
        VALUES ($1, $2, 'preparation', $3, $4)
        RETURNING *`,
       [annee, montant_previsionnel, epa_id, req.user.id]
@@ -459,15 +459,15 @@ router.post('/budgets', auditLogger('budgets'), async (req, res) => {
 // ============================================================
 router.get('/modificatifs', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     const result = await pool.query(`
       SELECT m.*, epa.nom as epa_nom
       FROM modificatifs m
-      JOIN epa ON m.epa_id = epa.id
-      WHERE m.epa_id = $1
-      ORDER BY m.created_at DESC
+      JOIN epa ON m.id_epa = epa.id
+      WHERE m.id_epa = $1
+      ORDER BY m.date_creation DESC
     `, [epa_id]);
 
     res.json(result.rows);
@@ -480,14 +480,14 @@ router.post('/modificatifs', auditLogger('modificatifs'), async (req, res) => {
   try {
     const { type, programme_source_id, programme_destination_id, montant, motif } = req.body;
     
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     const numero = `MOD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Date.now().toString().slice(-3)}`;
 
     const result = await pool.query(
       `INSERT INTO modificatifs 
-       (epa_id, numero, type_modificatif, programme_source_id, programme_dest_id, montant, motif, statut)
+       (id_epa, numero, type_modificatif, id_programme_source, id_programme_destination, montant, motif, statut)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'BROUILLON')
        RETURNING *`,
       [epa_id, numero, type || 'VIREMENT', programme_source_id, programme_destination_id, montant, motif]
@@ -504,20 +504,20 @@ router.post('/modificatifs', auditLogger('modificatifs'), async (req, res) => {
 // ============================================================
 router.get('/rapports-internes', async (req, res) => {
   try {
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     const result = await pool.query(`
       SELECT 
-        DATE_TRUNC('month', e.created_at) as mois,
+        DATE_TRUNC('month', e.date_creation) as mois,
         COUNT(*) as nb_engagements,
         SUM(e.montant) as total_engagements,
         COUNT(*) FILTER (WHERE e.statut = 'liquide') as nb_payes,
         SUM(e.montant) FILTER (WHERE e.statut = 'liquide') as total_payes,
         SUM(e.montant) FILTER (WHERE e.statut IN ('valide', 'liquide')) as total_engage
       FROM engagements e
-      WHERE e.epa_id = $1
-      GROUP BY DATE_TRUNC('month', e.created_at)
+      WHERE e.id_epa = $1
+      GROUP BY DATE_TRUNC('month', e.date_creation)
       ORDER BY mois DESC
       LIMIT 12
     `, [epa_id]);
@@ -605,8 +605,8 @@ router.post('/modificatifs/:id/soumettre', auditLogger('modificatifs'), async (r
     
     const result = await pool.query(
       `UPDATE modificatifs 
-       SET statut = 'EN_ATTENTE', updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND epa_id = (SELECT epa_id FROM utilisateurs WHERE id = $2)
+       SET statut = 'EN_ATTENTE', date_modification = CURRENT_TIMESTAMP
+       WHERE id = $1 AND id_epa = (SELECT id_epa FROM utilisateurs WHERE id = $2)
        RETURNING *`,
       [id, req.user.id]
     );
@@ -627,7 +627,7 @@ router.post('/modificatifs/:id/soumettre', auditLogger('modificatifs'), async (r
 router.post('/rapports-internes/generer', auditLogger('rapports'), async (req, res) => {
   try {
     const { mois, annee } = req.body;
-    const userResult = await pool.query('SELECT epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
+    const userResult = await pool.query('SELECT id_epa as epa_id FROM utilisateurs WHERE id = $1', [req.user.id]);
     const epa_id = userResult.rows[0].epa_id;
 
     // Simulation de génération (pourrait être une table 'rapports_generes')

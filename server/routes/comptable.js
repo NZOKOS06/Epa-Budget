@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { auditLogger } = require('../middleware/audit');
+const { generatePDF, generateExcel } = require('../services/exportService');
 
 const router = express.Router();
 
@@ -13,14 +14,21 @@ router.use(authorize('COMPTABLE'));
 // ============================================================
 router.get('/recettes', async (req, res) => {
   try {
+    // Récupérer l'EPA de l'utilisateur connecté de manière sécurisée
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
+
     const { annee } = req.query;
     let query = `
       SELECT r.*, b.annee as budget_annee
       FROM recettes r
       JOIN budgets b ON r.id_budget = b.id
-      WHERE r.epa_id = $1 AND r.est_annulee = false
+      WHERE r.id_epa = $1 AND r.est_annulee = false
     `;
-    const params = [req.user.epa_id];
+    const params = [id_epa];
 
     if (annee) {
       query += ' AND EXTRACT(YEAR FROM r.date_encaissement) = $2';
@@ -69,10 +77,17 @@ router.post('/recettes', auditLogger('recettes'), async (req, res) => {
       });
     }
 
+    // Récupérer l'EPA de l'utilisateur connecté de manière sécurisée
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
+
     // Récupérer le budget actif pour cet EPA
     const budgetResult = await pool.query(
-      `SELECT id FROM budgets WHERE epa_id = $1 AND statut = 'actif' LIMIT 1`,
-      [req.user.epa_id]
+      `SELECT id FROM budgets WHERE id_epa = $1 AND statut = 'actif' LIMIT 1`,
+      [id_epa]
     );
     if (budgetResult.rows.length === 0) {
       return res.status(400).json({
@@ -82,11 +97,11 @@ router.post('/recettes', auditLogger('recettes'), async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO recettes 
-       (montant, date_encaissement, source, numero_quittance, reference_titre, id_budget, id_agent_comptable, epa_id)
+       (montant, date_encaissement, source, numero_quittance, reference_titre, id_budget, id_agent_comptable, id_epa)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [montant, date_encaissement, source, numero_quittance, reference_titre, 
-       budgetResult.rows[0].id, req.user.id, req.user.epa_id]
+       budgetResult.rows[0].id, req.user.id, id_epa]
     );
 
     res.status(201).json(result.rows[0]);
@@ -128,34 +143,36 @@ router.post('/recettes/:id/contre-passation', auditLogger('recettes'), async (re
     try {
       await client.query('BEGIN');
 
-      // Marquer la recette originale comme annulée
+      // Marquer la recette originale comme annulée (RG-10: pas de modification directe)
       await client.query(
         'UPDATE recettes SET est_annulee = true WHERE id = $1',
         [id]
       );
 
-      // Créer l'écriture de contre-passation (montant négatif logique)
+      // Créer l'écriture de contre-passation avec un montant POSITIF
+      // (la recette est marquée est_annulee=true + id_contre_passation pour la traçabilité)
+      // Note: on NE peut PAS insérer un montant négatif car CHECK (montant > 0)
       const nouveauNumero = `CP-${recette.numero_quittance}-${Date.now()}`;
       await client.query(
         `INSERT INTO recettes 
          (montant, date_encaissement, source, numero_quittance, reference_titre, 
-          id_budget, id_agent_comptable, epa_id, est_annulee, id_contre_passation)
+          id_budget, id_agent_comptable, id_epa, est_annulee, id_contre_passation)
          VALUES ($1, CURRENT_DATE, $2, $3, $4, $5, $6, $7, true, $8)`,
         [
-          -recette.montant, // Montant négatif pour contre-passer
+          recette.montant, // montant POSITIF — c'est est_annulee=true qui neutralise
           recette.source,
           nouveauNumero,
           `Contre-passation: ${motif}`,
           recette.id_budget,
           req.user.id,
-          req.user.epa_id,
+          recette.id_epa,
           id
         ]
       );
 
       // Journal d'audit
       await client.query(
-        `INSERT INTO journal_audit (action, ressource, ressource_id, ancienne_valeur, nouvelle_valeur, ip_adresse, id_utilisateur)
+        `INSERT INTO journal_audit (action, ressource, id_ressource, ancienne_valeur, nouvelle_valeur, adresse_ip, id_utilisateur)
          VALUES ('update', 'recettes', $1, $2, $3, $4, $5)`,
         [
           id.toString(),
@@ -168,7 +185,7 @@ router.post('/recettes/:id/contre-passation', auditLogger('recettes'), async (re
 
       await client.query('COMMIT');
 
-      res.json({ success: true, message: 'Contre-passation enregistrée' });
+      res.json({ success: true, message: 'Contre-passation enregistrée avec succès' });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -185,6 +202,12 @@ router.post('/recettes/:id/contre-passation', auditLogger('recettes'), async (re
 // ============================================================
 router.get('/liquidations-en-attente', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
+
     const result = await pool.query(`
       SELECT l.*, 
         e.numero as engagement_numero,
@@ -195,9 +218,9 @@ router.get('/liquidations-en-attente', async (req, res) => {
       JOIN engagements e ON l.id_engagement = e.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       WHERE l.statut = 'en_attente'
-        AND e.epa_id = $1
-      ORDER BY l.created_at ASC
-    `, [req.user.epa_id]);
+        AND e.id_epa = $1
+      ORDER BY l.date_creation ASC
+    `, [id_epa]);
 
     res.json(result.rows);
   } catch (error) {
@@ -210,6 +233,11 @@ router.get('/liquidations-en-attente', async (req, res) => {
 // ============================================================
 router.get('/cloture', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.query;
     const anneeCloture = annee || new Date().getFullYear();
 
@@ -225,9 +253,9 @@ router.get('/cloture', async (req, res) => {
         b.statut as budget_statut
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
-      WHERE b.epa_id = $1 AND b.annee = $2
+      WHERE b.id_epa = $1 AND b.annee = $2
       ORDER BY cb.code
-    `, [req.user.epa_id, anneeCloture]);
+    `, [id_epa, anneeCloture]);
 
     res.json(result.rows);
   } catch (error) {
@@ -240,15 +268,20 @@ router.get('/cloture', async (req, res) => {
 // ============================================================
 router.get('/cloture/etapes', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.query;
     const anneeCloture = annee || new Date().getFullYear();
 
     // Vérifier s'il existe déjà des étapes pour cette année
     const existingEtapes = await pool.query(`
       SELECT * FROM workflow_cloture 
-      WHERE epa_id = $1 AND annee = $2
+      WHERE id_epa = $1 AND annee = $2
       ORDER BY id
-    `, [req.user.epa_id, anneeCloture]);
+    `, [id_epa, anneeCloture]);
 
     if (existingEtapes.rows.length > 0) {
       res.json(existingEtapes.rows);
@@ -272,6 +305,11 @@ router.get('/cloture/etapes', async (req, res) => {
 // ============================================================
 router.post('/cloture/generer', auditLogger('generation_comptes'), async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.body;
     const anneeCloture = annee || new Date().getFullYear();
 
@@ -279,29 +317,27 @@ router.post('/cloture/generer', auditLogger('generation_comptes'), async (req, r
     await pool.query(`
       UPDATE workflow_cloture 
       SET statut = 'TERMINE', date = CURRENT_TIMESTAMP
-      WHERE epa_id = $1 AND annee = $2 AND id IN (1, 2)
-    `, [req.user.epa_id, anneeCloture]);
+      WHERE id_epa = $1 AND annee = $2 AND id IN (1, 2)
+    `, [id_epa, anneeCloture]);
 
     // Marquer l'étape suivante en cours
     await pool.query(`
       UPDATE workflow_cloture 
       SET statut = 'EN_COURS'
-      WHERE epa_id = $1 AND annee = $2 AND id = 3
-    `, [req.user.epa_id, anneeCloture]);
+      WHERE id_epa = $1 AND annee = $2 AND id = 3
+    `, [id_epa, anneeCloture]);
 
     // Créer les rapports de comptes
     try {
       await pool.query(`
-        INSERT INTO rapports (epa_id, type, type_rapport, annee, statut, created_at, updated_at)
+        INSERT INTO rapports (id_epa, type_rapport, annee, statut, date_creation, date_modification)
         VALUES 
-          ($1, 'COMPTES_ADMINISTRATIFS', 'COMPTES_ADMINISTRATIFS', $2, 'GENERE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-          ($1, 'COMPTES_FINANCIERS', 'COMPTES_FINANCIERS', $2, 'GENERE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `, [req.user.epa_id, anneeCloture]);
-    } catch (error) {
-      // Ignorer l'erreur si les rapports existent déjà
-      if (!error.message.includes('duplicate key')) {
-        throw error;
-      }
+          ($1, 'COMPTES_ADMINISTRATIFS', $2, 'GENERE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+          ($1, 'COMPTES_FINANCIERS', $2, 'GENERE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT (id_epa, type_rapport, annee) DO NOTHING
+      `, [id_epa, anneeCloture]);
+    } catch (innerError) {
+      if (!innerError.message.includes('duplicate key')) throw innerError;
     }
 
     res.json({ message: 'Comptes générés avec succès' });
@@ -315,6 +351,12 @@ router.post('/cloture/generer', auditLogger('generation_comptes'), async (req, r
 // ============================================================
 router.get('/controle-regularite', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
+
     const result = await pool.query(`
       SELECT 
         e.*,
@@ -325,16 +367,16 @@ router.get('/controle-regularite', async (req, res) => {
         ac.type_avis,
         ac.commentaire as avis_commentaire
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u ON e.id_demandeur = u.id
       LEFT JOIN avis_controle ac ON ac.id_engagement = e.id AND ac.type_avis = 'favorable'
       WHERE e.statut = 'valide'
-        AND e.epa_id = $1
-        AND e.updated_at >= DATE_TRUNC('year', CURRENT_DATE)
-      ORDER BY e.updated_at DESC
+        AND e.id_epa = $1
+        AND e.date_modification >= DATE_TRUNC('year', CURRENT_DATE)
+      ORDER BY e.date_modification DESC
       LIMIT 100
-    `, [req.user.epa_id]);
+    `, [id_epa]);
 
     res.json(result.rows);
   } catch (error) {
@@ -342,11 +384,17 @@ router.get('/controle-regularite', async (req, res) => {
   }
 });
 
+
 // ============================================================
 // CERTIFIER COMPTES
 // ============================================================
 router.post('/cloture/certifier', auditLogger('certification_comptes'), async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.body;
     const anneeCloture = annee || new Date().getFullYear();
 
@@ -354,23 +402,23 @@ router.post('/cloture/certifier', auditLogger('certification_comptes'), async (r
     await pool.query(`
       UPDATE workflow_cloture 
       SET statut = 'TERMINE', date = CURRENT_TIMESTAMP
-      WHERE epa_id = $1 AND annee = $2 AND id = 3
-    `, [req.user.epa_id, anneeCloture]);
+      WHERE id_epa = $1 AND annee = $2 AND id = 3
+    `, [id_epa, anneeCloture]);
 
     // Marquer l'étape suivante en attente
     await pool.query(`
       UPDATE workflow_cloture 
       SET statut = 'EN_ATTENTE'
-      WHERE epa_id = $1 AND annee = $2 AND id = 4
-    `, [req.user.epa_id, anneeCloture]);
+      WHERE id_epa = $1 AND annee = $2 AND id = 4
+    `, [id_epa, anneeCloture]);
 
     // Mettre à jour les rapports comme certifiés
     await pool.query(`
       UPDATE rapports 
       SET statut = 'CERTIFIE', date_certification = CURRENT_TIMESTAMP
-      WHERE epa_id = $1 AND annee = $2 
+      WHERE id_epa = $1 AND annee = $2 
         AND type_rapport IN ('COMPTES_ADMINISTRATIFS', 'COMPTES_FINANCIERS')
-    `, [req.user.epa_id, anneeCloture]);
+    `, [id_epa, anneeCloture]);
 
     res.json({ message: 'Comptes certifiés avec succès' });
   } catch (error) {
@@ -383,6 +431,11 @@ router.post('/cloture/certifier', auditLogger('certification_comptes'), async (r
 // ============================================================
 router.post('/cloture/soumettre', auditLogger('soumission_ccdb'), async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.body;
     const anneeCloture = annee || new Date().getFullYear();
 
@@ -390,16 +443,16 @@ router.post('/cloture/soumettre', auditLogger('soumission_ccdb'), async (req, re
     await pool.query(`
       UPDATE workflow_cloture 
       SET statut = 'TERMINE', date = CURRENT_TIMESTAMP
-      WHERE epa_id = $1 AND annee = $2 AND id = 4
-    `, [req.user.epa_id, anneeCloture]);
+      WHERE id_epa = $1 AND annee = $2 AND id = 4
+    `, [id_epa, anneeCloture]);
 
     // Mettre à jour les rapports comme soumis
     await pool.query(`
       UPDATE rapports 
       SET statut = 'SOUMIS_CCDB', date_soumission_ccdb = CURRENT_TIMESTAMP
-      WHERE epa_id = $1 AND annee = $2 
+      WHERE id_epa = $1 AND annee = $2 
         AND type_rapport IN ('COMPTES_ADMINISTRATIFS', 'COMPTES_FINANCIERS')
-    `, [req.user.epa_id, anneeCloture]);
+    `, [id_epa, anneeCloture]);
 
     res.json({ message: 'Comptes soumis à la CCDB avec succès' });
   } catch (error) {
@@ -412,17 +465,23 @@ router.post('/cloture/soumettre', auditLogger('soumission_ccdb'), async (req, re
 // ============================================================
 router.get('/tresorerie', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
+
     // 1. Recettes des 12 derniers mois
     const recettesResult = await pool.query(`
       SELECT 
         TO_CHAR(DATE_TRUNC('month', r.date_encaissement), 'Mon') as mois,
         SUM(r.montant) FILTER (WHERE r.est_annulee = false) as encaissements
       FROM recettes r
-      WHERE r.epa_id = $1
+      WHERE r.id_epa = $1
       GROUP BY DATE_TRUNC('month', r.date_encaissement)
       ORDER BY DATE_TRUNC('month', r.date_encaissement) DESC
       LIMIT 12
-    `, [req.user.epa_id]);
+    `, [id_epa]);
 
     // 2. Décaissements des 12 derniers mois (basé sur les paiements)
     const paiementsResult = await pool.query(`
@@ -432,11 +491,11 @@ router.get('/tresorerie', async (req, res) => {
       FROM paiements p
       JOIN liquidations l ON p.id_liquidation = l.id
       JOIN engagements e ON l.id_engagement = e.id
-      WHERE e.epa_id = $1
+      WHERE e.id_epa = $1
       GROUP BY DATE_TRUNC('month', p.date_paiement)
       ORDER BY DATE_TRUNC('month', p.date_paiement) DESC
       LIMIT 12
-    `, [req.user.epa_id]);
+    `, [id_epa]);
 
     // Fusionner pour le plan de flux
     const planFluxMap = {};
@@ -457,10 +516,10 @@ router.get('/tresorerie', async (req, res) => {
       SELECT SUM(l.montant_liquide) as total_engagements
       FROM liquidations l
       JOIN engagements e ON l.id_engagement = e.id
-      WHERE l.statut = 'validee' AND e.epa_id = $1
-    `, [req.user.epa_id]);
+      WHERE l.statut = 'validee' AND e.id_epa = $1
+    `, [id_epa]);
     
-    // 4. Soldes fictifs pour la démo (le Trésor n'a pas de compte bancaire géré ici, mais on simule)
+    // 4. Soldes fictifs pour la démo
     const soldes = [
       { compte: 'Compte Trésor Principal', solde: 500000000 },
       { compte: 'Caisse Régie', solde: 15000000 }
@@ -481,18 +540,23 @@ router.get('/tresorerie', async (req, res) => {
 // ============================================================
 router.get('/comptes-annuels', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.query;
     const anneeCompte = annee || new Date().getFullYear();
 
     const result = await pool.query(`
       SELECT r.*, epa.nom as epa_nom
       FROM rapports r
-      JOIN epa ON r.epa_id = epa.id
+      JOIN epa ON r.id_epa = epa.id
       WHERE r.type_rapport = 'COMPTES_ANNUELS' 
         AND r.annee = $1
-        AND r.epa_id = $2
-      ORDER BY r.created_at DESC
-    `, [anneeCompte, req.user.epa_id]);
+        AND r.id_epa = $2
+      ORDER BY r.date_creation DESC
+    `, [anneeCompte, id_epa]);
 
     res.json(result.rows);
   } catch (error) {
@@ -505,10 +569,14 @@ router.get('/comptes-annuels', async (req, res) => {
 // ============================================================
 router.get('/comptes-annuels/export-ccdb', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { annee } = req.query;
     const anneeCompte = annee || new Date().getFullYear();
 
-    // Récupérer les données pour l'export
     const result = await pool.query(`
       SELECT 
         r.*,
@@ -517,26 +585,48 @@ router.get('/comptes-annuels/export-ccdb', async (req, res) => {
         cb.cp_alloue,
         cb.cp_paye
       FROM rapports r
-      JOIN epa ON r.epa_id = epa.id
+      JOIN epa ON r.id_epa = epa.id
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = (
-        SELECT id FROM budgets WHERE epa_id = r.epa_id AND annee = r.annee LIMIT 1
+        SELECT id FROM budgets WHERE id_epa = r.id_epa AND annee = r.annee LIMIT 1
       )
       WHERE r.type_rapport IN ('COMPTES_ADMINISTRATIFS', 'COMPTES_FINANCIERS') 
         AND r.annee = $1
-        AND r.epa_id = $2
+        AND r.id_epa = $2
       ORDER BY r.type_rapport
-    `, [anneeCompte, req.user.epa_id]);
+    `, [anneeCompte, id_epa]);
 
-    // Pour l'instant, retourner un JSON simple
-    // TODO: Implémenter la génération Excel avec une librairie comme xlsx
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="comptes_annuels_${anneeCompte}_ccdb.json"`);
-    res.json({
-      annee: anneeCompte,
-      epa: result.rows[0]?.epa_nom || 'EPA',
-      date_export: new Date().toISOString(),
-      comptes: result.rows
+    // Création du fichier Excel avec exceljs via notre service
+    const columns = [
+      { header: 'Type de Rapport', key: 'type_rapport', width: 30 },
+      { header: 'Année', key: 'annee', width: 10 },
+      { header: 'Statut', key: 'statut', width: 20 },
+      { header: 'AE Alloués', key: 'ae_alloue', width: 20 },
+      { header: 'CP Alloués', key: 'cp_alloue', width: 20 },
+      { header: 'CP Payés', key: 'cp_paye', width: 20 },
+      { header: 'Date Génération', key: 'date_creation', width: 25 },
+      { header: 'Date Certification', key: 'date_certification', width: 25 }
+    ];
+
+    const rows = result.rows.map(r => ({
+      type_rapport: r.type_rapport,
+      annee: r.annee,
+      statut: r.statut,
+      ae_alloue: r.ae_alloue ? parseFloat(r.ae_alloue) : 0,
+      cp_alloue: r.cp_alloue ? parseFloat(r.cp_alloue) : 0,
+      cp_paye: r.cp_paye ? parseFloat(r.cp_paye) : 0,
+      date_creation: new Date(r.date_creation).toLocaleDateString('fr-FR'),
+      date_certification: r.date_certification ? new Date(r.date_certification).toLocaleDateString('fr-FR') : 'Non certifié'
+    }));
+
+    const buffer = await generateExcel({
+      title: `Comptes_${anneeCompte}`,
+      columns,
+      rows
     });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="comptes_annuels_${anneeCompte}_ccdb.xlsx"`);
+    res.send(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
@@ -547,15 +637,19 @@ router.get('/comptes-annuels/export-ccdb', async (req, res) => {
 // ============================================================
 router.get('/comptes-annuels/:id/download', async (req, res) => {
   try {
+    const userEpa = await pool.query('SELECT id_epa FROM utilisateurs WHERE id = $1', [req.user.id]);
+    if (!userEpa.rows[0]?.id_epa) {
+      return res.status(400).json({ message: 'Cet utilisateur n\'est pas rattaché à un EPA' });
+    }
+    const id_epa = userEpa.rows[0].id_epa;
     const { id } = req.params;
 
-    // Récupérer les informations du rapport
     const rapportResult = await pool.query(`
       SELECT r.*, epa.nom as epa_nom
       FROM rapports r
-      JOIN epa ON r.epa_id = epa.id
-      WHERE r.id = $1 AND r.epa_id = $2
-    `, [id, req.user.epa_id]);
+      JOIN epa ON r.id_epa = epa.id
+      WHERE r.id = $1 AND r.id_epa = $2
+    `, [id, id_epa]);
 
     if (rapportResult.rows.length === 0) {
       return res.status(404).json({ message: 'Rapport non trouvé' });
@@ -563,22 +657,43 @@ router.get('/comptes-annuels/:id/download', async (req, res) => {
 
     const rapport = rapportResult.rows[0];
 
-    // Pour l'instant, générer un PDF simple
-    // TODO: Implémenter la génération PDF avec une librairie comme puppeteer
+    // Générer le PDF via exportService
+    const metadata = {
+      'Rapport': rapport.type_rapport,
+      'EPA': rapport.epa_nom,
+      'Année': rapport.annee,
+      'Statut': rapport.statut,
+      'Date de génération': new Date(rapport.date_creation).toLocaleString('fr-FR'),
+      'Date de certification': rapport.date_certification ? new Date(rapport.date_certification).toLocaleString('fr-FR') : 'Non certifié'
+    };
+
+    // On va chercher les détails budgétaires pour alimenter le PDF
+    const detailBudget = await pool.query(`
+      SELECT cb.code, cb.libelle, cb.ae_alloue, cb.cp_alloue, cb.cp_paye 
+      FROM chapitres_budgetaires cb
+      JOIN budgets b ON cb.id_budget = b.id
+      WHERE b.id_epa = $1 AND b.annee = $2
+    `, [rapport.id_epa, rapport.annee]);
+
+    const headers = ['Code', 'Chapitre', 'AE Alloués', 'CP Alloués', 'CP Payés'];
+    const rows = detailBudget.rows.map(cb => [
+      cb.code, 
+      cb.libelle, 
+      parseFloat(cb.ae_alloue || 0).toLocaleString('fr-FR') + ' FCFA', 
+      parseFloat(cb.cp_alloue || 0).toLocaleString('fr-FR') + ' FCFA', 
+      parseFloat(cb.cp_paye || 0).toLocaleString('fr-FR') + ' FCFA'
+    ]);
+
+    const pdfBuffer = await generatePDF({
+      title: 'Compte Annuel ' + rapport.annee,
+      metadata,
+      headers,
+      rows
+    });
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${rapport.type_rapport}_${rapport.annee}.pdf"`);
-    
-    // Contenu PDF de base (placeholder)
-    const pdfContent = `
-      Rapport: ${rapport.type_rapport}
-      EPA: ${rapport.epa_nom}
-      Année: ${rapport.annee}
-      Statut: ${rapport.statut}
-      Date de création: ${rapport.created_at}
-      ${rapport.date_certification ? `Date de certification: ${rapport.date_certification}` : ''}
-    `;
-
-    res.send(pdfContent);
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }

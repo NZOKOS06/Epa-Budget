@@ -17,16 +17,16 @@ router.get('/consolidation', async (req, res) => {
     let query = `
       SELECT 
         epa.id, epa.code, epa.nom, epa.secteur,
-        COALESCE(SUM(cb.montant_alloue), 0) as budget_total,
-        COALESCE(SUM(cb.montant_engage), 0) as engage_total,
-        COALESCE(SUM(cb.montant_paye), 0) as paye_total,
+        COALESCE(SUM(cb.ae_alloue), 0) as budget_total,
+        COALESCE(SUM(cb.ae_engage), 0) as engage_total,
+        COALESCE(SUM(cb.cp_paye), 0) as paye_total,
         COUNT(DISTINCT e.id) FILTER (WHERE e.statut = 'valide') as nb_engagements_valides,
         COUNT(DISTINCT e.id) FILTER (WHERE e.statut = 'rejete') as nb_engagements_rejetes
       FROM epa
-      LEFT JOIN budgets b ON b.epa_id = epa.id AND b.statut = 'actif'
+      LEFT JOIN budgets b ON b.id_epa = epa.id AND b.statut = 'actif'
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b.id
       LEFT JOIN articles_budgetaires ab ON ab.id_chapitre = cb.id
-      LEFT JOIN engagements e ON e.id_article_budgetaire = ab.id
+      LEFT JOIN engagements e ON e.id_article = ab.id
     `;
     const params = [];
 
@@ -65,7 +65,7 @@ router.get('/epa/:id', async (req, res) => {
         COUNT(*) FILTER (WHERE statut = 'liquide') as nb_liquides,
         SUM(montant) FILTER (WHERE statut IN ('valide', 'liquide')) as total_engage
       FROM engagements
-      WHERE epa_id = $1
+      WHERE id_epa = $1
     `, [id]);
 
     // Chapitres budgétaires
@@ -73,7 +73,7 @@ router.get('/epa/:id', async (req, res) => {
       SELECT cb.*
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
-      WHERE b.epa_id = $1 AND b.statut = 'actif'
+      WHERE b.id_epa = $1 AND b.statut = 'actif'
       ORDER BY cb.code
     `, [id]);
 
@@ -96,7 +96,7 @@ router.get('/workflow-approbation', async (req, res) => {
     let query = `
       SELECT m.*, epa.nom as epa_nom
       FROM modificatifs m
-      JOIN epa ON m.epa_id = epa.id
+      JOIN epa ON m.id_epa = epa.id
     `;
     const params = [];
 
@@ -105,7 +105,7 @@ router.get('/workflow-approbation', async (req, res) => {
       params.push(statut);
     }
 
-    query += ' ORDER BY m.created_at DESC';
+    query += ' ORDER BY m.date_creation DESC';
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -130,7 +130,7 @@ router.post('/modificatifs/:id/approbation', auditLogger('modificatifs'), async 
 
     const result = await pool.query(
       `UPDATE modificatifs 
-       SET statut = $1, approbation_tutelle = $2, updated_at = CURRENT_TIMESTAMP
+       SET statut = $1, approbation_tutelle = $2, date_modification = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
       [statut, action === 'APPROUVER', id]
@@ -160,15 +160,15 @@ router.get('/performance-programmes', async (req, res) => {
         epa.secteur,
         cb.code as chapitre_code,
         cb.libelle as chapitre_libelle,
-        cb.montant_alloue as budget_initial,
-        cb.montant_engage,
-        cb.montant_paye,
+        cb.ae_alloue as budget_initial,
+        cb.ae_engage as montant_engage,
+        cb.cp_paye as montant_paye,
         ROUND(
           (cb.montant_paye / NULLIF(cb.montant_alloue, 0)) * 100, 2
         ) as taux_execution
       FROM chapitres_budgetaires cb
       JOIN budgets b ON cb.id_budget = b.id
-      JOIN epa ON b.epa_id = epa.id
+      JOIN epa ON b.id_epa = epa.id
       WHERE b.annee = $1
       ORDER BY epa.nom, cb.code
     `, [anneeAnalyse]);
@@ -189,17 +189,17 @@ router.get('/rapports-sectoriels', async (req, res) => {
       SELECT 
         epa.secteur,
         COUNT(DISTINCT epa.id) as nb_epa,
-        COALESCE(SUM(cb.montant_alloue), 0) as budget_total,
-        COALESCE(SUM(cb.montant_engage), 0) as engage_total,
-        COALESCE(SUM(cb.montant_paye), 0) as paye_total,
+        COALESCE(SUM(cb.ae_alloue), 0) as budget_total,
+        COALESCE(SUM(cb.ae_engage), 0) as engage_total,
+        COALESCE(SUM(cb.cp_paye), 0) as paye_total,
         COUNT(DISTINCT e.id) as nb_engagements,
         COALESCE(SUM(r.montant) FILTER (WHERE r.est_annulee = false), 0) as total_recettes
       FROM epa
-      LEFT JOIN budgets b ON b.epa_id = epa.id
+      LEFT JOIN budgets b ON b.id_epa = epa.id
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b.id
       LEFT JOIN articles_budgetaires ab ON ab.id_chapitre = cb.id
-      LEFT JOIN engagements e ON e.id_article_budgetaire = ab.id
-      LEFT JOIN recettes r ON r.epa_id = epa.id
+      LEFT JOIN engagements e ON e.id_article = ab.id
+      LEFT JOIN recettes r ON r.id_epa = epa.id
     `;
     const params = [];
     const conditions = [];

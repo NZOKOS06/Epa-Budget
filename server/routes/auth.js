@@ -19,7 +19,7 @@ router.post('/login', async (req, res) => {
     const result = await pool.query(
       `SELECT u.*, r.code as role_code, r.nom as role_nom 
        FROM utilisateurs u 
-       JOIN roles r ON u.role_id = r.id 
+       JOIN roles r ON u.id_role = r.id 
        WHERE LOWER(u.email) = LOWER($1) AND u.statut = 'actif'`,
       [email]
     );
@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
     // Journal d'audit — tracer la connexion
     try {
       await pool.query(
-        `INSERT INTO journal_audit (action, ressource, ressource_id, nouvelle_valeur, ip_adresse, id_utilisateur)
+        `INSERT INTO journal_audit (action, ressource, id_ressource, nouvelle_valeur, adresse_ip, id_utilisateur)
          VALUES ('view', 'connexion', $1, $2, $3, $4)`,
         [
           user.id.toString(),

@@ -101,7 +101,7 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
     // Vérifier le rôle de l'acteur
     const acteurResult = await client.query(
       `SELECT u.*, r.code as role_code FROM utilisateurs u 
-       JOIN roles r ON u.role_id = r.id WHERE u.id = $1`,
+       JOIN roles r ON u.id_role = r.id WHERE u.id = $1`,
       [acteurId]
     );
     
@@ -122,15 +122,16 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
     }
 
     // ============================================================
-    // RG-01: Vérifier que le budget est actif avant soumission
+    // RG-01: Vérifier que le budget est actif avant soumission au DAF
+    // La vérification est faite à la première soumission (brouillon → soumise_daf)
     // ============================================================
-    if (ancienStatut === 'brouillon' && nouveauStatut === 'en_attente_cb') {
+    if (ancienStatut === 'brouillon' && nouveauStatut === 'soumise_daf') {
       const budgetCheck = await client.query(`
         SELECT b.statut FROM budgets b
         JOIN chapitres_budgetaires cb ON cb.id_budget = b.id
         JOIN articles_budgetaires ab ON ab.id_chapitre = cb.id
         WHERE ab.id = $1
-      `, [engagement.id_article_budgetaire]);
+      `, [engagement.id_article]);
 
       if (budgetCheck.rows.length === 0 || budgetCheck.rows[0].statut !== 'actif') {
         throw new Error('Le budget annuel doit être au statut "actif" pour soumettre un engagement (RG-01)');
@@ -144,7 +145,7 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
       // Verrouiller l'article budgétaire
       const articleResult = await client.query(
         'SELECT * FROM articles_budgetaires WHERE id = $1 FOR UPDATE',
-        [engagement.id_article_budgetaire]
+        [engagement.id_article]
       );
 
       if (articleResult.rows.length === 0) {
@@ -167,7 +168,7 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
         `UPDATE articles_budgetaires 
          SET ae_engage = ae_engage + $1, cp_engage = cp_engage + $1 
          WHERE id = $2`,
-        [engagement.montant, engagement.id_article_budgetaire]
+        [engagement.montant, engagement.id_article]
       );
 
       // Mettre à jour le chapitre budgétaire
@@ -175,7 +176,7 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
         `UPDATE chapitres_budgetaires 
          SET ae_engage = ae_engage + $1 
          WHERE id = (SELECT id_chapitre FROM articles_budgetaires WHERE id = $2)`,
-        [engagement.montant, engagement.id_article_budgetaire]
+        [engagement.montant, engagement.id_article]
       );
     }
 
@@ -200,7 +201,7 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
 
     // Enregistrer dans l'historique workflow
     await client.query(
-      `INSERT INTO workflow_history (engagement_id, ancien_statut, nouveau_statut, acteur_id, commentaire)
+      `INSERT INTO workflow_history (id_engagement, ancien_statut, nouveau_statut, id_acteur, commentaire)
        VALUES ($1, $2, $3, $4, $5)`,
       [engagementId, ancienStatut, nouveauStatut, acteurId, commentaire]
     );
@@ -209,7 +210,7 @@ async function changeStatutEngagement(engagementId, nouveauStatut, acteurId, com
     // Journal d'audit (RG-20)
     // ============================================================
     await client.query(
-      `INSERT INTO journal_audit (action, ressource, ressource_id, ancienne_valeur, nouvelle_valeur, ip_adresse, id_utilisateur)
+      `INSERT INTO journal_audit (action, ressource, id_ressource, ancienne_valeur, nouvelle_valeur, adresse_ip, id_utilisateur)
        VALUES ('update', 'engagements', $1, $2, $3, $4, $5)`,
       [
         engagementId.toString(),
@@ -256,10 +257,10 @@ async function getWorkflowHistory(engagementId) {
   const result = await pool.query(
     `SELECT wh.*, u.nom || ' ' || u.prenom as acteur_nom, r.nom as acteur_role
      FROM workflow_history wh
-     JOIN utilisateurs u ON wh.acteur_id = u.id
-     JOIN roles r ON u.role_id = r.id
-     WHERE wh.engagement_id = $1
-     ORDER BY wh.created_at ASC`,
+     JOIN utilisateurs u ON wh.id_acteur = u.id
+     JOIN roles r ON u.id_role = r.id
+     WHERE wh.id_engagement = $1
+     ORDER BY wh.date_creation ASC`,
     [engagementId]
   );
 

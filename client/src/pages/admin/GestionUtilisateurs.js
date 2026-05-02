@@ -294,8 +294,8 @@ export default function GestionUtilisateurs() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Direction / Service (optionnel)</label>
-                <input type="text" value={form.direction_id} onChange={e => setForm(f => ({ ...f, direction_id: e.target.value }))} placeholder="ex: Direction Financière" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">ID Direction (optionnel)</label>
+                <input type="number" min="1" value={form.direction_id} onChange={e => setForm(f => ({ ...f, direction_id: e.target.value }))} placeholder="ex: 1" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               {!editUser && (
                 <div>

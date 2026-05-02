@@ -14,7 +14,7 @@ router.get('/piste-audit', async (req, res) => {
   try {
     const { 
       numero_engagement, 
-      epa_id, 
+      id_epa: epa_id,
       date_debut, 
       date_fin,
       montant_min 
@@ -29,7 +29,7 @@ router.get('/piste-audit', async (req, res) => {
         ac.type_avis, ac.commentaire as avis_commentaire,
         uc.nom || ' ' || uc.prenom as controleur_nom
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN utilisateurs u1 ON e.id_demandeur = u1.id
       LEFT JOIN utilisateurs u2 ON e.id_validateur_dg = u2.id
       LEFT JOIN avis_controle ac ON ac.id_engagement = e.id
@@ -46,19 +46,19 @@ router.get('/piste-audit', async (req, res) => {
     }
 
     if (epa_id) {
-      query += ` AND e.epa_id = $${paramIndex}`;
+      query += ` AND e.id_epa = $${paramIndex}`;
       params.push(epa_id);
       paramIndex++;
     }
 
     if (date_debut) {
-      query += ` AND e.created_at >= $${paramIndex}`;
+      query += ` AND e.date_creation >= $${paramIndex}`;
       params.push(date_debut);
       paramIndex++;
     }
 
     if (date_fin) {
-      query += ` AND e.created_at <= $${paramIndex}`;
+      query += ` AND e.date_creation <= $${paramIndex}`;
       params.push(date_fin);
       paramIndex++;
     }
@@ -69,7 +69,7 @@ router.get('/piste-audit', async (req, res) => {
       paramIndex++;
     }
 
-    query += ' ORDER BY e.created_at DESC LIMIT 500';
+    query += ' ORDER BY e.date_creation DESC LIMIT 500';
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -94,7 +94,7 @@ router.get('/engagements/:id/timeline', async (req, res) => {
         u1.nom || ' ' || u1.prenom as demandeur_nom,
         u2.nom || ' ' || u2.prenom as validateur_dg_nom
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u1 ON e.id_demandeur = u1.id
       LEFT JOIN utilisateurs u2 ON e.id_validateur_dg = u2.id
@@ -109,10 +109,10 @@ router.get('/engagements/:id/timeline', async (req, res) => {
     const historyResult = await pool.query(`
       SELECT wh.*, u.nom || ' ' || u.prenom as acteur_nom, r.nom as acteur_role
       FROM workflow_history wh
-      JOIN utilisateurs u ON wh.acteur_id = u.id
-      JOIN roles r ON u.role_id = r.id
-      WHERE wh.engagement_id = $1
-      ORDER BY wh.created_at ASC
+      JOIN utilisateurs u ON wh.id_acteur = u.id
+      JOIN roles r ON u.id_role = r.id
+      WHERE wh.id_engagement = $1
+      ORDER BY wh.date_creation ASC
     `, [id]);
 
     // Avis du contrôleur
@@ -126,7 +126,7 @@ router.get('/engagements/:id/timeline', async (req, res) => {
 
     // Pièces jointes
     const piecesResult = await pool.query(
-      'SELECT * FROM pieces_jointes WHERE engagement_id = $1 ORDER BY created_at', [id]
+      'SELECT * FROM pieces_jointes WHERE id_engagement = $1 ORDER BY date_creation', [id]
     );
 
     // Liquidation
@@ -148,7 +148,7 @@ router.get('/engagements/:id/timeline', async (req, res) => {
       SELECT ja.*, u.nom || ' ' || u.prenom as utilisateur_nom
       FROM journal_audit ja
       JOIN utilisateurs u ON ja.id_utilisateur = u.id
-      WHERE ja.ressource = 'engagements' AND ja.ressource_id = $1
+      WHERE ja.ressource = 'engagements' AND ja.id_ressource = $1
       ORDER BY ja.date_heure ASC
     `, [id.toString()]);
 
@@ -177,7 +177,7 @@ router.get('/journal-audit', async (req, res) => {
       SELECT ja.*, u.nom || ' ' || u.prenom as utilisateur_nom, r.nom as role_nom
       FROM journal_audit ja
       JOIN utilisateurs u ON ja.id_utilisateur = u.id
-      JOIN roles r ON u.role_id = r.id
+      JOIN roles r ON u.id_role = r.id
       WHERE 1=1
     `;
     const params = [];
@@ -225,7 +225,7 @@ router.get('/comptes-annuels', async (req, res) => {
     let query = `
       SELECT r.*, epa.nom as epa_nom, epa.secteur
       FROM rapports r
-      JOIN epa ON r.epa_id = epa.id
+      JOIN epa ON r.id_epa = epa.id
       WHERE r.type_rapport = 'COMPTES_ANNUELS'
     `;
     const params = [];
@@ -238,7 +238,7 @@ router.get('/comptes-annuels', async (req, res) => {
     }
 
     if (epa_id) {
-      query += ` AND r.epa_id = $${paramIndex}`;
+      query += ` AND r.id_epa = $${paramIndex}`;
       params.push(epa_id);
       paramIndex++;
     }
@@ -262,7 +262,7 @@ router.get('/export-audit', async (req, res) => {
     let query = `
       SELECT 
         e.numero, e.montant, e.objet, e.statut, e.motif_rejet,
-        e.created_at, e.updated_at,
+        e.date_creation as created_at, e.date_modification as updated_at,
         ab.code as article_code,
         cb.code as chapitre_code,
         u1.nom || ' ' || u1.prenom as demandeur_nom,
@@ -270,7 +270,7 @@ router.get('/export-audit', async (req, res) => {
         ac.type_avis, ac.date_avis,
         uc.nom || ' ' || uc.prenom as controleur_nom
       FROM engagements e
-      JOIN articles_budgetaires ab ON e.id_article_budgetaire = ab.id
+      JOIN articles_budgetaires ab ON e.id_article = ab.id
       JOIN chapitres_budgetaires cb ON ab.id_chapitre = cb.id
       JOIN utilisateurs u1 ON e.id_demandeur = u1.id
       LEFT JOIN utilisateurs u2 ON e.id_validateur_dg = u2.id
@@ -282,24 +282,24 @@ router.get('/export-audit', async (req, res) => {
     let paramIndex = 1;
 
     if (epa_id) {
-      query += ` AND e.epa_id = $${paramIndex}`;
+      query += ` AND e.id_epa = $${paramIndex}`;
       params.push(epa_id);
       paramIndex++;
     }
 
     if (date_debut) {
-      query += ` AND e.created_at >= $${paramIndex}`;
+      query += ` AND e.date_creation >= $${paramIndex}`;
       params.push(date_debut);
       paramIndex++;
     }
 
     if (date_fin) {
-      query += ` AND e.created_at <= $${paramIndex}`;
+      query += ` AND e.date_creation <= $${paramIndex}`;
       params.push(date_fin);
       paramIndex++;
     }
 
-    query += ' ORDER BY e.created_at DESC';
+    query += ' ORDER BY e.date_creation DESC';
 
     const result = await pool.query(query, params);
     res.json(result.rows);

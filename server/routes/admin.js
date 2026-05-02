@@ -25,7 +25,7 @@ router.get('/dashboard', async (req, res) => {
       SELECT r.code as role, r.nom as role_nom, COUNT(u.id) as total,
         COUNT(u.id) FILTER (WHERE u.statut = 'actif') as actifs
       FROM roles r
-      LEFT JOIN utilisateurs u ON u.role_id = r.id
+      LEFT JOIN utilisateurs u ON u.id_role = r.id
       GROUP BY r.id, r.code, r.nom
       ORDER BY r.code
     `);
@@ -53,9 +53,9 @@ router.get('/dashboard', async (req, res) => {
         COALESCE(SUM(cb.cp_paye), 0) as paye_total,
         COUNT(DISTINCT u.id) as nb_utilisateurs
       FROM epa
-      LEFT JOIN budgets b ON b.epa_id = epa.id AND b.statut = 'actif'
+      LEFT JOIN budgets b ON b.id_epa = epa.id AND b.statut = 'actif'
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b.id
-      LEFT JOIN utilisateurs u ON u.epa_id = epa.id AND u.statut = 'actif'
+      LEFT JOIN utilisateurs u ON u.id_epa = epa.id AND u.statut = 'actif'
       GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, b.annee, b.statut, b.montant_previsionnel
       ORDER BY epa.nom
     `);
@@ -65,7 +65,7 @@ router.get('/dashboard', async (req, res) => {
       SELECT ja.*, u.nom || ' ' || u.prenom as utilisateur_nom, r.nom as role_nom
       FROM journal_audit ja
       JOIN utilisateurs u ON ja.id_utilisateur = u.id
-      JOIN roles r ON u.role_id = r.id
+      JOIN roles r ON u.id_role = r.id
       WHERE ja.ressource = 'connexion'
       ORDER BY ja.date_heure DESC
       LIMIT 10
@@ -75,7 +75,7 @@ router.get('/dashboard', async (req, res) => {
     const alertesResult = await pool.query(`
       SELECT * FROM alertes
       WHERE lue = false
-      ORDER BY created_at DESC
+      ORDER BY date_creation DESC
       LIMIT 5
     `);
 
@@ -108,11 +108,11 @@ router.get('/epa', async (req, res) => {
         COALESCE(b_actif.montant_previsionnel, 0) as budget_total,
         COALESCE(SUM(cb.ae_alloue), 0) as budget_alloue
       FROM epa
-      LEFT JOIN utilisateurs u ON u.epa_id = epa.id AND u.statut = 'actif'
-      LEFT JOIN budgets b ON b.epa_id = epa.id
-      LEFT JOIN budgets b_actif ON b_actif.epa_id = epa.id AND b_actif.statut = 'actif'
+      LEFT JOIN utilisateurs u ON u.id_epa = epa.id AND u.statut = 'actif'
+      LEFT JOIN budgets b ON b.id_epa = epa.id
+      LEFT JOIN budgets b_actif ON b_actif.id_epa = epa.id AND b_actif.statut = 'actif'
       LEFT JOIN chapitres_budgetaires cb ON cb.id_budget = b_actif.id
-      GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, epa.created_at, b_actif.annee, b_actif.statut, b_actif.montant_previsionnel
+      GROUP BY epa.id, epa.code, epa.nom, epa.secteur, epa.statut, epa.date_creation, b_actif.annee, b_actif.statut, b_actif.montant_previsionnel
       ORDER BY epa.nom
     `);
     res.json(result.rows);
@@ -133,13 +133,13 @@ router.get('/epa/:id', async (req, res) => {
     const utilisateursResult = await pool.query(`
       SELECT u.id, u.nom, u.prenom, u.email, u.statut, r.nom as role_nom, r.code as role_code
       FROM utilisateurs u
-      JOIN roles r ON u.role_id = r.id
-      WHERE u.epa_id = $1
+      JOIN roles r ON u.id_role = r.id
+      WHERE u.id_epa = $1
       ORDER BY r.code, u.nom
     `, [id]);
 
     const budgetsResult = await pool.query(
-      'SELECT * FROM budgets WHERE epa_id = $1 ORDER BY annee DESC',
+      'SELECT * FROM budgets WHERE id_epa = $1 ORDER BY annee DESC',
       [id]
     );
 
@@ -149,7 +149,7 @@ router.get('/epa/:id', async (req, res) => {
         COALESCE(SUM(e.montant) FILTER (WHERE e.statut = 'valide'), 0) as montant_valide,
         COUNT(*) FILTER (WHERE e.statut = 'valide') as nb_valides
       FROM engagements e
-      WHERE e.epa_id = $1
+      WHERE e.id_epa = $1
     `, [id]);
 
     res.json({
@@ -192,7 +192,7 @@ router.post('/epa', auditLogger('epa'), async (req, res) => {
     // Création du budget initial si fourni
     if (annee && budget_actif) {
       await client.query(
-        `INSERT INTO budgets (annee, montant_previsionnel, statut, epa_id, created_by)
+        `INSERT INTO budgets (annee, montant_previsionnel, statut, id_epa, cree_par)
          VALUES ($1, $2, 'actif', $3, $4)`,
         [annee, budget_actif, epaId, req.user.id]
       );
@@ -229,21 +229,21 @@ router.put('/epa/:id', auditLogger('epa'), async (req, res) => {
     if (annee && budget_actif) {
       // Vérifier si un budget existe déjà pour cette année et cet EPA
       const existingBudget = await client.query(
-        'SELECT id FROM budgets WHERE annee = $1 AND epa_id = $2',
+        'SELECT id FROM budgets WHERE annee = $1 AND id_epa = $2',
         [annee, id]
       );
 
       if (existingBudget.rows.length > 0) {
         // Mettre à jour le budget existant
         await client.query(
-          `UPDATE budgets SET montant_previsionnel = $1, updated_at = CURRENT_TIMESTAMP 
+          `UPDATE budgets SET montant_previsionnel = $1, date_modification = CURRENT_TIMESTAMP 
            WHERE id = $2`,
           [budget_actif, existingBudget.rows[0].id]
         );
       } else {
         // Créer un nouveau budget
         await client.query(
-          `INSERT INTO budgets (annee, montant_previsionnel, statut, epa_id, created_by)
+          `INSERT INTO budgets (annee, montant_previsionnel, statut, id_epa, cree_par)
            VALUES ($1, $2, 'actif', $3, $4)`,
           [annee, budget_actif, id, req.user.id]
         );
@@ -294,7 +294,7 @@ router.get('/utilisateurs', async (req, res) => {
     let query = `
       SELECT
         u.id, u.nom, u.prenom, u.email, u.statut,
-        u.epa_id, u.direction_id, u.created_at, u.updated_at,
+        u.id_epa, u.id_direction, u.date_creation, u.date_modification,
         r.id as role_id, r.code as role_code, r.nom as role_nom,
         epa.nom as epa_nom, epa.code as epa_code,
         (
@@ -303,8 +303,8 @@ router.get('/utilisateurs', async (req, res) => {
           WHERE ja.id_utilisateur = u.id AND ja.ressource = 'connexion'
         ) as derniere_connexion
       FROM utilisateurs u
-      JOIN roles r ON u.role_id = r.id
-      LEFT JOIN epa ON u.epa_id = epa.id
+      JOIN roles r ON u.id_role = r.id
+      LEFT JOIN epa ON u.id_epa = epa.id
       WHERE 1=1
     `;
     const params = [];
@@ -315,7 +315,7 @@ router.get('/utilisateurs', async (req, res) => {
       params.push(role);
     }
     if (epa_id) {
-      query += ` AND u.epa_id = $${idx++}`;
+      query += ` AND u.id_epa = $${idx++}`;
       params.push(epa_id);
     }
     if (statut) {
@@ -345,8 +345,8 @@ router.get('/utilisateurs/:id', async (req, res) => {
       SELECT u.*, r.id as role_id, r.code as role_code, r.nom as role_nom,
         epa.nom as epa_nom
       FROM utilisateurs u
-      JOIN roles r ON u.role_id = r.id
-      LEFT JOIN epa ON u.epa_id = epa.id
+      JOIN roles r ON u.id_role = r.id
+      LEFT JOIN epa ON u.id_epa = epa.id
       WHERE u.id = $1
     `, [id]);
 
@@ -356,7 +356,7 @@ router.get('/utilisateurs/:id', async (req, res) => {
 
     // Historique connexions
     const connexions = await pool.query(`
-      SELECT date_heure, ip_adresse
+      SELECT date_heure, adresse_ip
       FROM journal_audit
       WHERE id_utilisateur = $1 AND ressource = 'connexion'
       ORDER BY date_heure DESC
@@ -371,12 +371,39 @@ router.get('/utilisateurs/:id', async (req, res) => {
 
 router.post('/utilisateurs', auditLogger('utilisateurs'), async (req, res) => {
   try {
-    const { nom, prenom, email, role_id, epa_id, direction_id, mot_de_passe } = req.body;
+    const {
+      nom,
+      prenom,
+      email,
+      id_role,
+      role_id,
+      id_epa,
+      epa_id,
+      id_direction,
+      direction_id,
+      mot_de_passe
+    } = req.body;
 
-    if (!nom || !prenom || !email || !role_id || !mot_de_passe) {
+    const finalRoleId = id_role || role_id;
+    const finalEpaId = id_epa ?? epa_id ?? null;
+    const finalDirectionId = id_direction ?? direction_id ?? null;
+    const parsedRoleId = Number(finalRoleId);
+    const parsedEpaId = finalEpaId === null || finalEpaId === '' ? null : Number(finalEpaId);
+    const parsedDirectionId = finalDirectionId === null || finalDirectionId === '' ? null : Number(finalDirectionId);
+
+    if (!nom || !prenom || !email || !finalRoleId || !mot_de_passe) {
       return res.status(400).json({
-        message: 'Champs obligatoires : nom, prenom, email, role_id, mot_de_passe'
+        message: 'Champs obligatoires : nom, prenom, email, id_role, mot_de_passe'
       });
+    }
+    if (!Number.isInteger(parsedRoleId)) {
+      return res.status(400).json({ message: 'id_role/role_id doit etre un entier' });
+    }
+    if (parsedEpaId !== null && !Number.isInteger(parsedEpaId)) {
+      return res.status(400).json({ message: 'id_epa/epa_id doit etre un entier' });
+    }
+    if (parsedDirectionId !== null && !Number.isInteger(parsedDirectionId)) {
+      return res.status(400).json({ message: 'id_direction/direction_id doit etre un entier' });
     }
 
     // Vérifier unicité email
@@ -386,7 +413,7 @@ router.post('/utilisateurs', auditLogger('utilisateurs'), async (req, res) => {
     }
 
     // Vérifier que le rôle existe
-    const roleCheck = await pool.query('SELECT id FROM roles WHERE id = $1', [role_id]);
+    const roleCheck = await pool.query('SELECT id FROM roles WHERE id = $1', [parsedRoleId]);
     if (roleCheck.rows.length === 0) {
       return res.status(400).json({ message: 'Rôle invalide' });
     }
@@ -394,10 +421,10 @@ router.post('/utilisateurs', auditLogger('utilisateurs'), async (req, res) => {
     const hashedPassword = await bcrypt.hash(mot_de_passe, 10);
 
     const result = await pool.query(
-      `INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role_id, epa_id, direction_id, statut)
+      `INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, id_role, id_epa, id_direction, statut)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'actif')
-       RETURNING id, nom, prenom, email, statut, role_id, epa_id, direction_id, created_at`,
-      [nom, prenom, email.toLowerCase(), hashedPassword, role_id, epa_id || null, direction_id || null]
+       RETURNING id, nom, prenom, email, statut, id_role, id_epa, id_direction, date_creation`,
+      [nom, prenom, email.toLowerCase(), hashedPassword, parsedRoleId, parsedEpaId, parsedDirectionId]
     );
 
     res.status(201).json(result.rows[0]);
@@ -409,7 +436,22 @@ router.post('/utilisateurs', auditLogger('utilisateurs'), async (req, res) => {
 router.put('/utilisateurs/:id', auditLogger('utilisateurs'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { nom, prenom, email, role_id, epa_id, direction_id } = req.body;
+    const { nom, prenom, email, role_id, id_role, epa_id, id_epa, direction_id, id_direction } = req.body;
+    const finalRoleId = role_id || id_role || null;
+    const finalEpaId = epa_id ?? id_epa ?? null;
+    const finalDirectionId = direction_id ?? id_direction ?? null;
+    const parsedRoleId = finalRoleId === null || finalRoleId === '' ? null : Number(finalRoleId);
+    const parsedEpaId = finalEpaId === null || finalEpaId === '' ? null : Number(finalEpaId);
+    const parsedDirectionId = finalDirectionId === null || finalDirectionId === '' ? null : Number(finalDirectionId);
+    if (parsedRoleId !== null && !Number.isInteger(parsedRoleId)) {
+      return res.status(400).json({ message: 'id_role/role_id doit etre un entier' });
+    }
+    if (parsedEpaId !== null && !Number.isInteger(parsedEpaId)) {
+      return res.status(400).json({ message: 'id_epa/epa_id doit etre un entier' });
+    }
+    if (parsedDirectionId !== null && !Number.isInteger(parsedDirectionId)) {
+      return res.status(400).json({ message: 'id_direction/direction_id doit etre un entier' });
+    }
 
     // Vérifier unicité email (hors cet utilisateur)
     if (email) {
@@ -427,13 +469,13 @@ router.put('/utilisateurs/:id', auditLogger('utilisateurs'), async (req, res) =>
        SET nom = COALESCE($1, nom),
            prenom = COALESCE($2, prenom),
            email = COALESCE($3, email),
-           role_id = COALESCE($4, role_id),
-           epa_id = $5,
-           direction_id = $6,
-           updated_at = CURRENT_TIMESTAMP
+           id_role = COALESCE($4, id_role),
+           id_epa = $5,
+           id_direction = $6,
+           date_modification = CURRENT_TIMESTAMP
        WHERE id = $7
-       RETURNING id, nom, prenom, email, statut, role_id, epa_id, direction_id`,
-      [nom, prenom, email, role_id, epa_id || null, direction_id || null, id]
+       RETURNING id, nom, prenom, email, statut, id_role, id_epa, id_direction`,
+      [nom, prenom, email, parsedRoleId, parsedEpaId, parsedDirectionId, id]
     );
 
     if (result.rows.length === 0) {
@@ -461,7 +503,7 @@ router.patch('/utilisateurs/:id/statut', auditLogger('utilisateurs'), async (req
     }
 
     const result = await pool.query(
-      `UPDATE utilisateurs SET statut = $1, updated_at = CURRENT_TIMESTAMP
+      `UPDATE utilisateurs SET statut = $1, date_modification = CURRENT_TIMESTAMP
        WHERE id = $2 RETURNING id, nom, prenom, email, statut`,
       [statut, id]
     );
@@ -485,7 +527,7 @@ router.post('/utilisateurs/:id/reset-password', auditLogger('utilisateurs'), asy
     const hashed = await bcrypt.hash(mdp, 10);
 
     const result = await pool.query(
-      `UPDATE utilisateurs SET mot_de_passe = $1, updated_at = CURRENT_TIMESTAMP
+      `UPDATE utilisateurs SET mot_de_passe = $1, date_modification = CURRENT_TIMESTAMP
        WHERE id = $2 RETURNING id, nom, prenom, email`,
       [hashed, id]
     );
@@ -514,7 +556,7 @@ router.get('/roles', async (req, res) => {
         COUNT(u.id) as nb_utilisateurs,
         COUNT(u.id) FILTER (WHERE u.statut = 'actif') as nb_actifs
       FROM roles r
-      LEFT JOIN utilisateurs u ON u.role_id = r.id
+      LEFT JOIN utilisateurs u ON u.id_role = r.id
       GROUP BY r.id
       ORDER BY r.code
     `);
@@ -537,8 +579,8 @@ router.get('/journal', async (req, res) => {
         epa.nom as epa_nom
       FROM journal_audit ja
       JOIN utilisateurs u ON ja.id_utilisateur = u.id
-      JOIN roles r ON u.role_id = r.id
-      LEFT JOIN epa ON u.epa_id = epa.id
+      JOIN roles r ON u.id_role = r.id
+      LEFT JOIN epa ON u.id_epa = epa.id
       WHERE 1=1
     `;
     const params = [];
@@ -565,7 +607,7 @@ router.get('/journal', async (req, res) => {
       params.push(id_utilisateur);
     }
     if (epa_id) {
-      query += ` AND u.epa_id = $${idx++}`;
+      query += ` AND u.id_epa = $${idx++}`;
       params.push(epa_id);
     }
 
@@ -596,7 +638,7 @@ router.get('/configuration', async (req, res) => {
     const anneesResult = await pool.query(`
       SELECT b.*, epa.nom as epa_nom
       FROM budgets b
-      JOIN epa ON b.epa_id = epa.id
+      JOIN epa ON b.id_epa = epa.id
       ORDER BY b.annee DESC, epa.nom
     `);
 
@@ -610,7 +652,7 @@ router.get('/configuration', async (req, res) => {
       SELECT
         (SELECT COUNT(*) FROM epa) as nb_epa,
         (SELECT COUNT(*) FROM utilisateurs WHERE statut = 'actif') as nb_utilisateurs_actifs,
-        (SELECT COUNT(*) FROM engagements WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as nb_engagements_mois,
+        (SELECT COUNT(*) FROM engagements WHERE date_creation >= CURRENT_DATE - INTERVAL '30 days') as nb_engagements_mois,
         (SELECT COUNT(*) FROM journal_audit WHERE date_heure >= CURRENT_DATE - INTERVAL '24 hours') as nb_actions_jour
     `);
 
@@ -640,14 +682,14 @@ router.patch('/budgets/:id/statut', auditLogger('budgets'), async (req, res) => 
       const budget = await pool.query('SELECT * FROM budgets WHERE id = $1', [id]);
       if (budget.rows.length > 0) {
         await pool.query(
-          `UPDATE budgets SET statut = 'cloture' WHERE epa_id = $1 AND annee = $2 AND id != $3 AND statut = 'actif'`,
-          [budget.rows[0].epa_id, budget.rows[0].annee, id]
+          `UPDATE budgets SET statut = 'cloture' WHERE id_epa = $1 AND annee = $2 AND id != $3 AND statut = 'actif'`,
+          [budget.rows[0].id_epa, budget.rows[0].annee, id]
         );
       }
     }
 
     const result = await pool.query(
-      `UPDATE budgets SET statut = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      `UPDATE budgets SET statut = $1, date_modification = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
       [statut, id]
     );
 

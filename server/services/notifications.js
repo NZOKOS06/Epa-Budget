@@ -12,17 +12,17 @@ async function emitNotification({ role, userId, engagementId, message, titre, li
     if (role) {
       // Notification pour tous les utilisateurs d'un rôle
       query = `
-        INSERT INTO notifications (utilisateur_id, type, titre, message, lien)
+        INSERT INTO notifications (id_utilisateur, type, titre, message, lien)
         SELECT u.id, 'WORKFLOW', $1, $2, $3
         FROM utilisateurs u
-        JOIN roles r ON u.role_id = r.id
+        JOIN roles r ON u.id_role = r.id
         WHERE r.code = $4 AND u.statut = 'actif'
       `;
       params = [titre || 'Notification workflow', message, lien || null, role];
     } else if (userId) {
       // Notification pour un utilisateur spécifique
       query = `
-        INSERT INTO notifications (utilisateur_id, type, titre, message, lien)
+        INSERT INTO notifications (id_utilisateur, type, titre, message, lien)
         VALUES ($1, 'WORKFLOW', $2, $3, $4)
       `;
       params = [userId, titre || 'Notification workflow', message, lien || null];
@@ -33,16 +33,34 @@ async function emitNotification({ role, userId, engagementId, message, titre, li
     await dbClient.query(query, params);
 
     // Si engagementId fourni, créer le lien automatiquement
+    let notificationLien = lien;
     if (engagementId && !lien) {
+      notificationLien = `/engagements/${engagementId}`;
       await dbClient.query(
         `UPDATE notifications SET lien = $1 
          WHERE id IN (
            SELECT id FROM notifications 
            WHERE message = $2 
-           ORDER BY created_at DESC LIMIT 1
+           ORDER BY date_creation DESC LIMIT 1
          )`,
-        [`/engagements/${engagementId}`, message]
+        [notificationLien, message]
       );
+    }
+
+    // Émission temps réel via Socket.IO
+    if (global.emitNotificationSocket) {
+      if (userId) {
+        global.emitNotificationSocket(userId, { titre, message, lien: notificationLien });
+      } else if (role) {
+        // Récupérer les IDs des utilisateurs du rôle pour émettre
+        const usersInRole = await pool.query(
+          "SELECT u.id FROM utilisateurs u JOIN roles r ON u.id_role = r.id WHERE r.code = $1 AND u.statut = 'actif'",
+          [role]
+        );
+        usersInRole.rows.forEach(u => {
+          global.emitNotificationSocket(u.id, { titre, message, lien: notificationLien });
+        });
+      }
     }
 
     return { success: true };
@@ -58,7 +76,7 @@ async function emitNotification({ role, userId, engagementId, message, titre, li
 async function getNotifications(userId, nonLuesSeulement = false) {
   let query = `
     SELECT * FROM notifications 
-    WHERE utilisateur_id = $1
+    WHERE id_utilisateur = $1
   `;
   const params = [userId];
 
@@ -66,7 +84,7 @@ async function getNotifications(userId, nonLuesSeulement = false) {
     query += ' AND lue = false';
   }
 
-  query += ' ORDER BY created_at DESC LIMIT 50';
+  query += ' ORDER BY date_creation DESC LIMIT 50';
 
   const result = await pool.query(query, params);
   return result.rows;
@@ -77,7 +95,7 @@ async function getNotifications(userId, nonLuesSeulement = false) {
  */
 async function markAsRead(notificationId, userId) {
   const result = await pool.query(
-    'UPDATE notifications SET lue = true WHERE id = $1 AND utilisateur_id = $2 RETURNING *',
+    'UPDATE notifications SET lue = true WHERE id = $1 AND id_utilisateur = $2 RETURNING *',
     [notificationId, userId]
   );
   return result.rows[0];
@@ -88,7 +106,7 @@ async function markAsRead(notificationId, userId) {
  */
 async function markAllAsRead(userId) {
   await pool.query(
-    'UPDATE notifications SET lue = true WHERE utilisateur_id = $1 AND lue = false',
+    'UPDATE notifications SET lue = true WHERE id_utilisateur = $1 AND lue = false',
     [userId]
   );
 }

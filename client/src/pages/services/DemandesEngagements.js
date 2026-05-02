@@ -312,7 +312,7 @@ export default function ServicesDemandesEngagements() {
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600">
-                        {format(new Date(eng.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        {eng.date_creation ? format(new Date(eng.date_creation), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -565,7 +565,7 @@ export default function ServicesDemandesEngagements() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Créée le</p>
-                      <p className="font-medium text-gray-900">{format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                      <p className="font-medium text-gray-900">{selectedEngagement.date_creation ? format(new Date(selectedEngagement.date_creation), 'dd/MM/yyyy à HH:mm', { locale: fr }) : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -576,7 +576,7 @@ export default function ServicesDemandesEngagements() {
                   <h4 className="font-semibold text-gray-900">Suivi de la demande</h4>
                   <div className="border-l-2 border-primary-300 pl-4">
                     <p className="font-medium text-gray-900">Demande créée</p>
-                    <p className="text-sm text-gray-500">{format(new Date(selectedEngagement.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
+                    <p className="text-sm text-gray-500">{selectedEngagement.date_creation ? format(new Date(selectedEngagement.date_creation), 'dd/MM/yyyy à HH:mm', { locale: fr }) : 'N/A'}</p>
                   </div>
                   {selectedEngagement.soumission_daf_date && (
                     <div className="border-l-2 border-primary-300 pl-4">

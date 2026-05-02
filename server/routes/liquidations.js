@@ -111,17 +111,17 @@ router.post(
 
       // Mettre à jour le statut de l'engagement
       await pool.query(
-        `UPDATE engagements SET statut = 'liquide', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        `UPDATE engagements SET statut = 'liquide', date_modification = CURRENT_TIMESTAMP WHERE id = $1`,
         [id_engagement]
       );
 
       // Mettre à jour les montants liquidés dans l'article budgétaire (CP)
-      if (engagement.id_article_budgetaire) {
+      if (engagement.id_article) {
         await pool.query(
           `UPDATE articles_budgetaires 
            SET cp_liquide = cp_liquide + $1 
            WHERE id = $2`,
-          [montant_liquide, engagement.id_article_budgetaire]
+          [montant_liquide, engagement.id_article]
         );
       }
 
@@ -145,7 +145,7 @@ router.get('/en-attente', authorize('COMPTABLE'), async (req, res) => {
       FROM liquidations l
       JOIN engagements e ON l.id_engagement = e.id
       WHERE l.statut IN ('en_attente', 'validee')
-      ORDER BY l.created_at ASC
+      ORDER BY l.date_creation ASC
     `);
     res.json(result.rows);
   } catch (error) {
@@ -181,7 +181,7 @@ router.post(
 
       const result = await pool.query(
         `UPDATE liquidations 
-         SET statut = 'validee', id_validateur_ac = $1, updated_at = CURRENT_TIMESTAMP 
+         SET statut = 'validee', id_validateur_ac = $1, date_modification = CURRENT_TIMESTAMP 
          WHERE id = $2 RETURNING *`,
         [req.user.id, id]
       );
@@ -235,20 +235,20 @@ router.post(
 
       // Mettre à jour la liquidation
       await pool.query(
-        `UPDATE liquidations SET statut = 'payee', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        `UPDATE liquidations SET statut = 'payee', date_modification = CURRENT_TIMESTAMP WHERE id = $1`,
         [id]
       );
 
       // Mettre à jour les montants payés dans l'article budgétaire
       const engagement = await pool.query(
-        `SELECT e.id_article_budgetaire FROM engagements e 
+        `SELECT e.id_article FROM engagements e 
          JOIN liquidations l ON l.id_engagement = e.id 
          WHERE l.id = $1`,
         [id]
       );
 
-      if (engagement.rows.length > 0 && engagement.rows[0].id_article_budgetaire) {
-        const id_article = engagement.rows[0].id_article_budgetaire;
+      if (engagement.rows.length > 0 && engagement.rows[0].id_article) {
+        const id_article = engagement.rows[0].id_article;
         
         // Mettre à jour CP payé dans articles_budgetaires
         await pool.query(

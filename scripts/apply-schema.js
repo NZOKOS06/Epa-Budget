@@ -47,11 +47,11 @@ async function run() {
     await client.connect();
     console.log('Connecté à epa_budget');
 
-    const schemaPath = path.join(__dirname, '..', 'database', 'schema_v2.sql');
+    const schemaPath = path.join(__dirname, '..', 'database', 'init_complete.sql');
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
 
     await client.query(schemaSql);
-    console.log('Schéma V2 appliqué avec succès !');
+    console.log('Schéma officiel init_complete.sql appliqué avec succès !');
 
   } catch (err) {
     console.error("Erreur lors de l'application du schéma:", err);

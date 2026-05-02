@@ -6,14 +6,14 @@ async function initRapports() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rapports (
         id SERIAL PRIMARY KEY,
-        epa_id INTEGER REFERENCES epa(id),
-        type VARCHAR(50) NOT NULL, -- RAP_TRIMESTRIEL, COMPTES_ANNUELS
+        id_epa INTEGER REFERENCES epa(id),
+        type_rapport VARCHAR(50) NOT NULL, -- RAP_TRIMESTRIEL, COMPTES_ANNUELS
         periode VARCHAR(50),
         statut VARCHAR(20) DEFAULT 'BROUILLON', -- BROUILLON, VALIDE, TRANSMIS
-        chemin_fichier VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        created_by UUID REFERENCES utilisateurs(id)
+        fichier_path VARCHAR(255),
+        date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        cree_par UUID REFERENCES utilisateurs(id)
       )
     `);
     console.log('Table rapports créée ou déjà existante');
@@ -22,7 +22,7 @@ async function initRapports() {
     const check = await pool.query('SELECT COUNT(*) FROM rapports');
     if (parseInt(check.rows[0].count) === 0) {
       await pool.query(`
-        INSERT INTO rapports (epa_id, type, periode, statut)
+        INSERT INTO rapports (id_epa, type_rapport, periode, statut)
         VALUES 
         (1, 'RAP_TRIMESTRIEL', 'T1 2026', 'BROUILLON'),
         (1, 'COMPTES_ANNUELS', '2025', 'VALIDE'),
