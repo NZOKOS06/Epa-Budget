@@ -264,7 +264,7 @@ export default function Layout({ children }) {
         ...newNotif,
         id: `new-${Date.now()}`,
         lue: false,
-        created_at: new Date().toISOString()
+        date_creation: new Date().toISOString()
       }, ...prev]);
 
       if (Notification.permission === 'granted') {
@@ -509,7 +509,7 @@ export default function Layout({ children }) {
                                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
-                                  {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: fr })}
+                                  {notif.date_creation ? formatDistanceToNow(new Date(notif.date_creation), { addSuffix: true, locale: fr }) : 'A l\'instant'}
                                 </p>
                               </div>
                             </div>

@@ -20,7 +20,7 @@ export default function CCDBPisteAudit() {
   const [engagements, setEngagements] = useState([]);
   const [filters, setFilters] = useState({
     numero_engagement: '',
-    epa_id: '',
+    id_epa: '',
     date_debut: '',
     date_fin: '',
     montant_min: '',
@@ -68,6 +68,12 @@ export default function CCDBPisteAudit() {
             label="Numéro engagement"
             value={filters.numero_engagement}
             onChange={(e) => setFilters({ ...filters, numero_engagement: e.target.value })}
+            size="small"
+          />
+          <TextField
+            label="ID EPA"
+            value={filters.id_epa}
+            onChange={(e) => setFilters({ ...filters, id_epa: e.target.value })}
             size="small"
           />
           <TextField

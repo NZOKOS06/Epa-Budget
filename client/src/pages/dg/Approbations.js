@@ -481,9 +481,9 @@ export default function DGApprobations() {
                       <span className="text-gray-700">{eng.epa_nom || 'Service Général'}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-gray-600">
-                        {format(new Date(eng.updated_at), 'dd/MM/yyyy', { locale: fr })}
-                      </span>
+                      <p className="text-gray-900 font-medium">
+                        {eng.date_modification ? format(new Date(eng.date_modification), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
+                      </p>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

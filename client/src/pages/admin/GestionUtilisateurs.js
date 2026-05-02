@@ -32,7 +32,7 @@ export default function GestionUtilisateurs() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
-    nom: '', prenom: '', email: '', role_id: '', epa_id: '', direction_id: '', mot_de_passe: ''
+    nom: '', prenom: '', email: '', id_role: '', id_epa: '', id_direction: '', mot_de_passe: ''
   });
 
   const showToast = (msg, type = 'success') => {
@@ -45,7 +45,7 @@ export default function GestionUtilisateurs() {
       setLoading(true);
       const params = {};
       if (filterRole) params.role = filterRole;
-      if (filterEpa) params.epa_id = filterEpa;
+      if (filterEpa) params.id_epa = filterEpa;
       if (filterStatut) params.statut = filterStatut;
       if (search) params.search = search;
 
@@ -71,19 +71,19 @@ export default function GestionUtilisateurs() {
     if (user) {
       setForm({
         nom: user.nom, prenom: user.prenom, email: user.email,
-        role_id: user.role_id || '', epa_id: user.epa_id || '',
-        direction_id: user.direction_id || '', mot_de_passe: ''
+        id_role: user.id_role || '', id_epa: user.id_epa || '',
+        id_direction: user.id_direction || '', mot_de_passe: ''
       });
     } else {
       const pwd = genPassword();
-      setForm({ nom: '', prenom: '', email: '', role_id: '', epa_id: '', direction_id: '', mot_de_passe: pwd });
+      setForm({ nom: '', prenom: '', email: '', id_role: '', id_epa: '', id_direction: '', mot_de_passe: pwd });
     }
     setShowForm(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.nom || !form.prenom || !form.email || !form.role_id) return;
+    if (!form.nom || !form.prenom || !form.email || !form.id_role) return;
     try {
       setSaving(true);
       if (editUser) {
@@ -280,14 +280,14 @@ export default function GestionUtilisateurs() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Rôle *</label>
-                  <select value={form.role_id} onChange={e => setForm(f => ({ ...f, role_id: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" required>
+                  <select value={form.id_role} onChange={e => setForm(f => ({ ...f, id_role: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" required>
                     <option value="">Sélectionner un rôle...</option>
                     {roles.map(r => <option key={r.id} value={r.id}>{r.nom} ({r.code})</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">EPA</label>
-                  <select value={form.epa_id} onChange={e => setForm(f => ({ ...f, epa_id: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                  <select value={form.id_epa} onChange={e => setForm(f => ({ ...f, id_epa: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                     <option value="">Aucune (Tutelle/CCDB/Admin)</option>
                     {epas.filter(e => (e.statut || 'actif') === 'actif').map(e => <option key={e.id} value={e.id}>{e.nom}</option>)}
                   </select>
@@ -295,7 +295,7 @@ export default function GestionUtilisateurs() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">ID Direction (optionnel)</label>
-                <input type="number" min="1" value={form.direction_id} onChange={e => setForm(f => ({ ...f, direction_id: e.target.value }))} placeholder="ex: 1" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <input type="number" min="1" value={form.id_direction} onChange={e => setForm(f => ({ ...f, id_direction: e.target.value }))} placeholder="ex: 1" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               {!editUser && (
                 <div>

@@ -45,7 +45,7 @@ export default function JournalActivite() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     ressource: '', action: '', date_debut: '', date_fin: '',
-    id_utilisateur: '', epa_id: ''
+    id_utilisateur: '', id_epa: ''
   });
   const [total, setTotal] = useState(0);
 
@@ -170,8 +170,8 @@ export default function JournalActivite() {
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1">EPA</label>
             <select
-              value={filters.epa_id}
-              onChange={e => setFilters(f => ({ ...f, epa_id: e.target.value }))}
+              value={filters.id_epa}
+              onChange={e => setFilters(f => ({ ...f, id_epa: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               <option value="">Toutes les EPA</option>
@@ -210,7 +210,7 @@ export default function JournalActivite() {
         </div>
         <div className="flex justify-end mt-3">
           <button
-            onClick={() => setFilters({ ressource: '', action: '', date_debut: '', date_fin: '', id_utilisateur: '', epa_id: '' })}
+            onClick={() => setFilters({ ressource: '', action: '', date_debut: '', date_fin: '', id_utilisateur: '', id_epa: '' })}
             className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
             Réinitialiser les filtres
